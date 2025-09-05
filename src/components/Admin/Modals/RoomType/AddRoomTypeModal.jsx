@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useCallback } from "react";
 import {
   Dialog,
   DialogPanel,
@@ -6,14 +6,15 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
+import { v4 as uuidv4 } from "uuid"; // ADDED: Import UUID
 
 import supabase from "../../../../services/supabaseClient";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import TagInputManager from "../../../ui/common/TagInputManager";
-import DatePicker from "react-datepicker"; // <-- IMPORT THE COMPONENT
-import "react-datepicker/dist/react-datepicker.css"; // <-- IMPORT THE STYLES
+
+import "react-datepicker/dist/react-datepicker.css";
 import TimeSelector from "./TimeSelector";
-// --- Components for specific UI elements ---
+import ImageUploader from "../../../ui/common/ImageUploader";
 
 const initialFormState = {
   title: "",
@@ -25,13 +26,11 @@ const initialFormState = {
   guests_base: 2,
   guests_maximum: 4,
   extra_guest_fee: "",
-  check_in: null, // Changed: Use null for Date objects
-  check_out: null, // Changed: Use null for Date objects
+  check_in: "",
+  check_out: "",
   amenities: [],
   house_rules: [],
 };
-
-// --- Helper Component for Time Selection ---
 
 const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,29 +38,36 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
   const [useWeekendRate, setUseWeekendRate] = useState(false);
 
   const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-
+  const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const nextPage = () => setCurrentPage((prev) => prev + 1);
-  const prevPage = () => setCurrentPage((prev) => prev - 1);
+  // FIXED: Track upload progress to preserve it between page navigation
+  const [uploadProgress, setUploadProgress] = useState({});
+
+  // FIXED: Use useCallback to prevent unnecessary re-renders
+  const nextPage = useCallback(() => setCurrentPage((prev) => prev + 1), []);
+  const prevPage = useCallback(() => setCurrentPage((prev) => prev - 1), []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+  // FIXED: Use useCallback to prevent unnecessary re-renders
+  const handleFilesChange = useCallback((files) => {
     setImageFiles(files);
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setImagePreviews(previews);
-  };
+  }, []);
 
-  const handleTimeChange = (name, date) => {
-    setFormData((prev) => ({ ...prev, [name]: date }));
-  };
+  // FIXED: Add handler to update progress from ImageUploader
+  const handleProgressUpdate = useCallback((progressData) => {
+    setUploadProgress(progressData);
+  }, []);
+
+  // FIXED: Proper time change handler
+  const handleTimeChange = useCallback((name, timeString) => {
+    setFormData((prev) => ({ ...prev, [name]: timeString }));
+  }, []);
 
   // --- Amenity Handlers ---
   const handleAddAmenity = (amenity) => {
@@ -72,6 +78,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
       }));
     }
   };
+
   const handleRemoveAmenity = (amenityToRemove) => {
     setFormData((prev) => ({
       ...prev,
@@ -90,6 +97,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
       }));
     }
   };
+
   const handleRemoveRule = (ruleToRemove) => {
     setFormData((prev) => ({
       ...prev,
@@ -97,48 +105,62 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
     }));
   };
 
+  // FIXED: Proper image upload function with UUID
   const uploadImages = async () => {
-    // ... (Your existing uploadImages function is fine, no changes needed)
+    const uploadedUrls = [];
+    for (const file of imageFiles) {
+      const fileName = `${uuidv4()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from("room_type_images")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Error uploading image:", error);
+        throw new Error("Image upload failed.");
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("room_type_images")
+        .getPublicUrl(data.path);
+
+      uploadedUrls.push(publicUrlData.publicUrl);
+    }
+    return uploadedUrls;
   };
 
   const validatePage = () => {
     switch (currentPage) {
       case 1:
-        // Required fields for Page 1
         return formData.title.trim() !== "";
       case 2:
-        // Required fields for Page 2
         if (useWeekendRate) {
           return formData.base_rate !== "" && formData.weekend_rate !== "";
         } else {
           return formData.base_rate !== "";
         }
       case 3:
-        // Required fields for Page 3
         return (
           formData.min_stay !== "" &&
           formData.max_stay !== "" &&
           formData.guests_base !== ""
         );
       case 5:
-        // Validation now checks for the non-empty string set by TimeSelector
         return formData.check_in !== "" && formData.check_out !== "";
       default:
-        return true; // No required fields for other pages
+        return true;
     }
   };
 
   const handleNext = () => {
     if (validatePage()) {
       setCurrentPage((prev) => prev + 1);
-      setError(""); // Clear any previous errors on success
+      setError("");
     } else {
       setError("Please fill in all required fields to proceed.");
     }
   };
 
   const isFormValid = () => {
-    // Check all required fields across all pages
     const isPage1Valid = formData.title.trim() !== "";
     const isPage2Valid = useWeekendRate
       ? formData.base_rate !== "" && formData.weekend_rate !== ""
@@ -165,27 +187,20 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
     let uploadedImageUrls = [];
     try {
       if (imageFiles.length > 0) {
+        setIsUploading(true);
         uploadedImageUrls = await uploadImages();
+        setIsUploading(false);
       }
-
-      const formatTime = (date) => {
-        if (!date) return null;
-        return date.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-      };
 
       const roomTypeData = {
         ...formData,
         extra_guest_fee: formData.extra_guest_fee || null,
         guests_maximum: formData.guests_maximum || null,
         weekend_rate: useWeekendRate ? formData.weekend_rate || null : null,
-        amenities: formData.amenities, // Already an array
-        house_rules: formData.house_rules, // Already an array
-        check_in: formatTime(formData.check_in),
-        check_out: formatTime(formData.check_out),
+        amenities: formData.amenities,
+        house_rules: formData.house_rules,
+        check_in: formData.check_in,
+        check_out: formData.check_out,
         images: uploadedImageUrls,
       };
 
@@ -196,20 +211,18 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
       if (insertError) throw insertError;
 
       onSuccess();
-      setFormData(initialFormState); // Reset all states
+      setFormData(initialFormState);
       setImageFiles([]);
-      setImagePreviews([]);
+      setUploadProgress({});
       setCurrentPage(1);
       setUseWeekendRate(false);
       onClose();
     } catch (err) {
       console.error("Error adding room type:", err);
       setError(err.message || "Failed to add room type. Please try again.");
-      if (uploadedImageUrls.length > 0) {
-        // Cleanup logic here...
-      }
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -227,7 +240,6 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              {/* 1. Added `relative` for positioning the close button */}
               <DialogPanel className="relative w-full max-w-2xl transform overflow-hidden rounded-3xl bg-white p-8 text-left align-middle shadow-2xl transition-all">
                 <button
                   type="button"
@@ -249,31 +261,17 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                   <div className="mt-6 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
                     {/* --- Page 1: Details --- */}
                     {currentPage === 1 && (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Images (Max 5MB each)
-                          </label>
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                          {/* FIXED: Pass current files and progress to prevent reset on navigation */}
+                          <ImageUploader
+                            onFilesChange={handleFilesChange}
+                            onProgressUpdate={handleProgressUpdate}
+                            initialFiles={imageFiles}
+                            initialProgress={uploadProgress}
                           />
                         </div>
-                        {imagePreviews.length > 0 && (
-                          <div className="grid grid-cols-3 gap-4 mt-2">
-                            {imagePreviews.map((src, index) => (
-                              <img
-                                key={index}
-                                src={src}
-                                alt="Preview"
-                                className="h-24 w-full object-cover rounded-md"
-                              />
-                            ))}
-                          </div>
-                        )}
+
                         <div>
                           <label
                             htmlFor="title"
@@ -288,7 +286,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                             value={formData.title}
                             onChange={handleInputChange}
                             required
-                            className="border border-gray-300 p-2 rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
+                            className="mt-1 border border-gray-300 p-2 rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
                           />
                         </div>
                         <div>
@@ -304,7 +302,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                             rows="4"
                             value={formData.description}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                            className="mt-1 border border-gray-300 p-2 rounded-lg text-gray-800 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
                           ></textarea>
                         </div>
                       </div>
@@ -493,18 +491,23 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                     {currentPage === 5 && (
                       <div className="space-y-6 animate-fade-in">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* FIXED: Use proper time change handler */}
                           <TimeSelector
                             label="Check-in Time*"
                             name="check_in"
                             value={formData.check_in}
-                            onChange={handleInputChange} // Uses your existing handleInputChange
+                            onChange={(time) =>
+                              handleTimeChange("check_in", time)
+                            }
                             required
                           />
                           <TimeSelector
                             label="Check-out Time*"
                             name="check_out"
                             value={formData.check_out}
-                            onChange={handleInputChange}
+                            onChange={(time) =>
+                              handleTimeChange("check_out", time)
+                            }
                             required
                           />
                         </div>
@@ -552,7 +555,9 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                         <button
                           type="button"
                           onClick={handleNext}
-                          disabled={!validatePage() || isSubmitting}
+                          disabled={
+                            !validatePage() || isSubmitting || isUploading
+                          }
                           className=" disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                         >
                           Next
@@ -560,7 +565,9 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                       ) : (
                         <button
                           type="submit"
-                          disabled={isSubmitting || !isFormValid()}
+                          disabled={
+                            isSubmitting || !isFormValid() || isUploading
+                          }
                           className=" inline-flex items-center justify-center rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? "Adding..." : "Add Room Type"}

@@ -25,6 +25,7 @@ import LogoutModal from "./LogoutModal"; // The modal we created
 import PopoverMenuItem from "./PopoverMenuItem"; // The menu item we created
 
 // Reusable Nav Item Component with blue theme
+// Note: This component is already correct because it returns a single <li>
 const NavItem = ({ to, icon, label, sidebarOpen, closeSidebar }) => (
   <li>
     <NavLink
@@ -150,7 +151,7 @@ export default function AdminLayout() {
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Manage
               </h2>
-              <div className="space-y-2">
+              <ul className="space-y-2">
                 <NavItem
                   to="/admin/roomTypes"
                   icon={<FaTachometerAlt size={20} />}
@@ -179,14 +180,7 @@ export default function AdminLayout() {
                   sidebarOpen={sidebarOpen}
                   closeSidebar={() => setSidebarOpen(false)}
                 />
-                {/* <NavItem
-                  to="/admin/SpecialRates"
-                  icon={<FaUsers size={20} />}
-                  label="SpecialRates"
-                  sidebarOpen={sidebarOpen}
-                  closeSidebar={() => setSidebarOpen(false)}
-                /> */}
-              </div>
+              </ul>
             </li>
 
             {/* Connections Section */}
@@ -194,7 +188,7 @@ export default function AdminLayout() {
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Connections
               </h2>
-              <div className="space-y-2">
+              <ul className="space-y-2">
                 <NavItem
                   to="/admin/cardKeys"
                   icon={<FaUsers size={20} />}
@@ -209,7 +203,7 @@ export default function AdminLayout() {
                   sidebarOpen={sidebarOpen}
                   closeSidebar={() => setSidebarOpen(false)}
                 />
-              </div>
+              </ul>
             </li>
           </ul>
         </nav>

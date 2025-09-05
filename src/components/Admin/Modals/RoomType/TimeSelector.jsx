@@ -1,41 +1,43 @@
 import { useState, useEffect } from "react";
-import { FaRegClock } from "react-icons/fa"; // Using an icon for style
+import { FaRegClock } from "react-icons/fa";
 
 const TimeSelector = ({ label, name, value, onChange, required }) => {
   const hours = Array.from({ length: 12 }, (_, i) => i + 1);
-  const minutes = ["00", "15", "30", "45"];
+  const minutes = Array.from({ length: 60 }, (_, i) =>
+    i.toString().padStart(2, "0")
+  ); // FIXED: 1-60 minutes
   const periods = ["AM", "PM"];
 
-  // Simplified internal state
   const [time, setTime] = useState({ hour: "", minute: "", period: "" });
 
-  // Effect to parse the initial value from the parent
   useEffect(() => {
     if (value) {
-      const [timePart, periodPart] = value.split(" ");
-      const [hourPart, minutePart] = timePart.split(":");
-      setTime({
-        hour: hourPart || "",
-        minute: minutePart || "",
-        period: periodPart || "",
-      });
+      try {
+        const [timePart, periodPart] = value.split(" ");
+        const [hourPart, minutePart] = timePart.split(":");
+        setTime({
+          hour: hourPart || "",
+          minute: minutePart || "",
+          period: periodPart || "",
+        });
+      } catch (error) {
+        console.error("Error parsing time value:", error);
+        setTime({ hour: "", minute: "", period: "" });
+      }
     } else {
       setTime({ hour: "", minute: "", period: "" });
     }
   }, [value]);
 
-  // Handle changes to any part and notify the parent
   const handlePartChange = (part, partValue) => {
     const newTime = { ...time, [part]: partValue };
     setTime(newTime);
 
-    // Only call parent's onChange when all parts are selected
     if (newTime.hour && newTime.minute && newTime.period) {
       const formattedTime = `${newTime.hour}:${newTime.minute} ${newTime.period}`;
-      onChange({ target: { name, value: formattedTime } });
+      onChange(formattedTime); // FIXED: Call onChange directly with the formatted time
     } else {
-      // Clear parent state if incomplete
-      onChange({ target: { name, value: "" } });
+      onChange(""); // Clear if incomplete
     }
   };
 
@@ -47,13 +49,12 @@ const TimeSelector = ({ label, name, value, onChange, required }) => {
       >
         {label}
       </label>
-      {/* Main wrapper for the custom input look */}
+
       <div className="flex items-center w-full rounded-lg border border-gray-300 bg-white shadow-sm transition-all focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-orange-500">
         <div className="pl-3 pr-2 text-gray-400">
           <FaRegClock />
         </div>
 
-        {/* Hour Select */}
         <select
           id={`${name}-hour`}
           value={time.hour}
@@ -73,7 +74,6 @@ const TimeSelector = ({ label, name, value, onChange, required }) => {
 
         <span className="text-gray-400 font-bold">:</span>
 
-        {/* Minute Select */}
         <select
           id={`${name}-minute`}
           value={time.minute}
@@ -91,10 +91,8 @@ const TimeSelector = ({ label, name, value, onChange, required }) => {
           ))}
         </select>
 
-        {/* Divider */}
         <div className="border-l border-gray-200 h-6"></div>
 
-        {/* AM/PM Select */}
         <select
           id={`${name}-period`}
           value={time.period}
@@ -115,4 +113,5 @@ const TimeSelector = ({ label, name, value, onChange, required }) => {
     </div>
   );
 };
+
 export default TimeSelector;

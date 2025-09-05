@@ -1,21 +1,28 @@
-import { useState, useEffect } from "react";
+// src/pages/RoomTypes.jsx
+
+import { useState, Suspense, lazy } from "react";
 import ReactPaginate from "react-paginate";
-import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/20/solid";
 import { useSupabaseQuery } from "../../hooks/common/useSupabaseQuery";
 import supabase from "../../services/supabaseClient";
 
-// Import Modals
+// Lightweight components
+import PageHeader from "../../components/ui/common/PageHeader";
+import SearchInput from "../../components/ui/common/SearchInput";
+import EmptyState from "../../components/ui/common/EmptyState";
+
+// Modals (consider lazy loading these as well if they are large)
 import AddRoomTypeModal from "../../components/Admin/Modals/RoomType/AddRoomTypeModal";
 import EditRoomTypeModal from "../../components/Admin/Modals/RoomType/EditRoomTypeModal";
 import DeleteRoomTypeConfirmationModal from "../../components/Admin/Modals/RoomType/DeleteRoomTypeConfirmationModal";
-
 import Loader from "../../components/ui/common/loader";
+
+// Lazy-loaded View components
+const RoomTypeCardGrid = lazy(() =>
+  import("../../components/Admin/Modals/RoomType/Pages/RoomTypeCardGrid")
+);
+const RoomTypeDetails = lazy(() =>
+  import("../../components/Admin/Modals/RoomType/Pages/RoomTypeDetails")
+);
 
 const RoomTypes = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -23,7 +30,7 @@ const RoomTypes = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedRoomType, setSelectedRoomType] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [viewingDetails, setViewingDetails] = useState(false);
 
   const {
     data: roomTypes,
@@ -42,304 +49,171 @@ const RoomTypes = () => {
     clearSearch,
   } = useSupabaseQuery({
     tableName: "room_types",
-    selectQuery: "id, title, base_rate, guests_base, images", // Select images for deletion
+    selectQuery: "*", // Fetch all data for the details view
     searchColumn: "title",
-    initialPageSize: 5,
+    initialPageSize: 9, // A 3x3 grid looks good
   });
 
-  useEffect(() => {
-    const checkIfMobile = () => setIsMobile(window.innerWidth < 768);
-    checkIfMobile();
-    window.addEventListener("resize", checkIfMobile);
-    return () => window.removeEventListener("resize", checkIfMobile);
-  }, []);
-
-  const handlePageClick = (event) => {
-    setCurrentPage(event.selected + 1);
-  };
-
+  // Modal handler functions
   const handleAddSuccess = () => {
     setIsAddModalOpen(false);
     mutate();
-    if (currentPage !== 1 || activeSearchTerm) {
-      setCurrentPage(1);
-      clearSearch();
-    }
   };
-
   const openEditModal = (roomType) => {
     setSelectedRoomType(roomType);
     setIsEditModalOpen(true);
   };
-
   const handleEditSuccess = () => {
     setIsEditModalOpen(false);
     setSelectedRoomType(null);
     mutate();
   };
-
   const openDeleteModal = (roomType) => {
     setSelectedRoomType(roomType);
     setIsDeleteModalOpen(true);
+  };
+
+  // View handler functions
+  const handleViewDetails = (roomType) => {
+    setSelectedRoomType(roomType);
+    setViewingDetails(true);
+  };
+  const handleBackToGrid = () => {
+    setSelectedRoomType(null);
+    setViewingDetails(false);
   };
 
   const handleConfirmDelete = async () => {
     if (!selectedRoomType) return;
     setIsProcessing(true);
 
+    // Optimistic UI update
+    const updatedData = roomTypes.filter((rt) => rt.id !== selectedRoomType.id);
+    await mutate(
+      { data: updatedData, count: totalCount - 1 },
+      { revalidate: false }
+    );
+
     try {
-      // 1. Delete associated images from storage
       if (selectedRoomType.images && selectedRoomType.images.length > 0) {
-        // Extract file paths from URLs
-        const filePaths = selectedRoomType.images.map((url) => {
-          const parts = url.split("/");
-          return parts[parts.length - 1]; // Assumes simple path structure
-        });
-
-        const { error: storageError } = await supabase.storage
-          .from("room_type_images")
-          .remove(filePaths);
-
-        if (storageError) {
-          console.error("Error deleting images from storage:", storageError);
-          // Decide if you want to stop or continue if image deletion fails
-        }
+        const filePaths = selectedRoomType.images.map(
+          (url) => url.split("/room_type_images/")[1]
+        );
+        await supabase.storage.from("room_type_images").remove(filePaths);
       }
-
-      // 2. Delete the row from the database
       const { error: deleteError } = await supabase
         .from("room_types")
         .delete()
         .eq("id", selectedRoomType.id);
-
       if (deleteError) throw deleteError;
-
-      if (roomTypes.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        mutate();
-      }
     } catch (err) {
       console.error("Failed to delete room type:", err);
-      // Add a toast notification for the user
+      mutate(); // Revert optimistic update on failure
     } finally {
       setIsProcessing(false);
       setIsDeleteModalOpen(false);
       setSelectedRoomType(null);
+      // If we were on the details page, go back to the grid
+      if (viewingDetails) {
+        setViewingDetails(false);
+      }
     }
   };
 
-  const renderDesktopTable = () => (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Room Title
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Base Rate
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Base Guests
-            </th>
-            <th scope="col" className="relative px-6 py-3">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {roomTypes.map((roomType) => (
-            <tr key={roomType.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {roomType.title}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${Number(roomType.base_rate).toFixed(2)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {roomType.guests_base}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button
-                  onClick={() => openEditModal(roomType)}
-                  className="text-orange-600 hover:text-orange-900 p-1"
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => openDeleteModal(roomType)}
-                  className="text-red-600 hover:text-red-900 p-1"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderMobileCards = () => (
-    <div className="space-y-4">
-      {roomTypes.map((roomType) => (
-        <div
-          key={roomType.id}
-          className="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">
-                {roomType.title}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Rate: ${Number(roomType.base_rate).toFixed(2)} | Guests:{" "}
-                {roomType.guests_base}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => openEditModal(roomType)}
-                className="text-orange-600 hover:text-orange-900 p-1"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => openDeleteModal(roomType)}
-                className="text-red-600 hover:text-red-900 p-1"
-              >
-                <TrashIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const handlePageClick = (event) => {
+    setCurrentPage(event.selected + 1);
+  };
 
   const renderContent = () => {
-    if (isLoading && !totalCount) {
+    if (isLoading) return <Loader />;
+    if (error)
       return (
-        <div className="flex justify-center py-20">
-          <Loader />
-        </div>
+        <div className="text-center text-red-500">Error: {error.message}</div>
+      );
+
+    if (viewingDetails && selectedRoomType) {
+      return (
+        <Suspense fallback={<Loader />}>
+          <RoomTypeDetails
+            roomType={selectedRoomType}
+            onBack={handleBackToGrid}
+            onEdit={openEditModal}
+            onDelete={openDeleteModal}
+          />
+        </Suspense>
       );
     }
-    if (error) {
+
+    if (!roomTypes || roomTypes.length === 0) {
       return (
-        <div className="text-center py-10 text-red-500">{error.message}</div>
+        <EmptyState
+          title="No Room Types Found"
+          description={
+            activeSearchTerm
+              ? `No results for "${activeSearchTerm}".`
+              : 'Click "Add New Room Type" to get started.'
+          }
+        />
       );
     }
-    if (roomTypes.length === 0) {
-      return (
-        <div className="text-center py-10 text-gray-500">
-          <h4 className="font-semibold">
-            {activeSearchTerm ? "No Results Found" : "No Room Types Yet"}
-          </h4>
-          <p>
-            {activeSearchTerm
-              ? "Try a different search term or clear the search."
-              : 'Click "Add New" to get started.'}
-          </p>
-        </div>
-      );
-    }
-    return isMobile ? renderMobileCards() : renderDesktopTable();
+
+    return (
+      <Suspense fallback={<Loader />}>
+        <RoomTypeCardGrid
+          roomTypes={roomTypes}
+          onEdit={openEditModal}
+          onDelete={openDeleteModal}
+          onViewDetails={handleViewDetails}
+        />
+      </Suspense>
+    );
   };
 
   return (
     <>
-      <div className="space-y-6 w-full mx-auto p-4 md:p-6 max-w-4xl">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Manage Room Types
-            </h2>
-            <p className="text-sm text-gray-600">
-              Configure your property room types here.
-            </p>
-          </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center gap-x-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span className="sm:inline">Add New</span>
-          </button>
-        </div>
-
-        <form
-          onSubmit={handleSearch}
-          className="flex items-center gap-2 w-full"
-        >
-          <div className="relative flex-grow w-full">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by room title..."
-              className="block w-full rounded-md border-0 py-2 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm"
+      <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
+        {!viewingDetails && (
+          <>
+            <PageHeader
+              title="Manage Room Types"
+              description="Configure your property room types here."
+              buttonText="Add New Room Type"
+              onButtonClick={() => setIsAddModalOpen(true)}
             />
-          </div>
-          <button
-            type="submit"
-            className="hidden sm:flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            Search
-          </button>
-          <button
-            type="submit"
-            className="sm:hidden p-2 text-white bg-gray-800 rounded-md hover:bg-gray-700"
-            aria-label="Search"
-          >
-            <MagnifyingGlassIcon className="h-5 w-5" />
-          </button>
-          {activeSearchTerm && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="p-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
-              aria-label="Clear search"
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-          )}
-        </form>
+            <SearchInput
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              activeSearchTerm={activeSearchTerm}
+              onSearch={handleSearch}
+              onClear={clearSearch}
+              placeholder="Search by room title..."
+            />
+          </>
+        )}
 
-        <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
-          {renderContent()}
-          {totalCount > pageSize && (
-            <div className="p-6 border-t border-gray-200">
-              <ReactPaginate
-                breakLabel="..."
-                nextLabel="›"
-                onPageChange={handlePageClick}
-                pageRangeDisplayed={3}
-                pageCount={pageCount}
-                previousLabel="‹"
-                renderOnZeroPageCount={null}
-                forcePage={currentPage - 1}
-                containerClassName="flex items-center justify-center gap-2 text-base font-medium"
-                pageLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
-                activeLinkClassName="bg-orange-500 text-white border-orange-500 hover:bg-orange-600"
-                previousLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
-                nextLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
-              />
-            </div>
-          )}
+        <div className="overflow-hidden">
+          <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
+            {renderContent()}
+            {totalCount > pageSize && (
+              <div className="p-6 border-t border-gray-200">
+                <ReactPaginate
+                  breakLabel="..."
+                  nextLabel="›"
+                  onPageChange={handlePageClick}
+                  pageRangeDisplayed={3}
+                  pageCount={pageCount}
+                  previousLabel="‹"
+                  renderOnZeroPageCount={null}
+                  forcePage={currentPage - 1}
+                  containerClassName="flex items-center justify-center gap-2 text-base font-medium"
+                  pageLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
+                  activeLinkClassName="bg-orange-500 text-white border-orange-500 hover:bg-orange-600"
+                  previousLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
+                  nextLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
