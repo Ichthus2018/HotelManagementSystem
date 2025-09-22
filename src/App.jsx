@@ -16,12 +16,17 @@ import HomePage from "./pages/customer/HomePage";
 import BookingPage from "./pages/customer/BookingPage";
 import LandingPage from "./pages/admin/LandingPage";
 import Register from "./pages/auth/Register";
-import RoomTypes from "./pages/admin/roomTypes";
-import RoomNumbers from "./pages/admin/roomNumbers";
+import RoomTypes from "./pages/admin/RoomTypes";
+import RoomNumbers from "./pages/admin/RoomNumbers";
 import RoomLocations from "./pages/admin/roomlocations";
 import CardKeys from "./pages/admin/cardKeys";
 import Bookings from "./pages/admin/bookings";
 import RoomStatus from "./pages/admin/RoomStatus";
+import DoorLocks from "./pages/admin/DoorLocks";
+import Gateways from "./pages/admin/Gateways";
+import HotelFacilities from "./pages/admin/HotelFacilities";
+import Guests from "./pages/admin/Guests";
+import ChargeItems from "./pages/admin/ChargeItems";
 
 function App() {
   const { user, loading } = useAuth();
@@ -39,10 +44,22 @@ function App() {
             <Route path="/admin" element={<LandingPage />} />
             <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/roomTypes" element={<RoomTypes />} />
+            <Route
+              path="/admin/roomNumbers/:roomTypeId"
+              element={<RoomNumbers />}
+            />
+            <Route path="/admin/chargeItems" element={<ChargeItems />} />
             <Route path="/admin/roomNumbers" element={<RoomNumbers />} />
             <Route path="/admin/roomStatus" element={<RoomStatus />} />
             <Route path="/admin/roomLocations" element={<RoomLocations />} />
             <Route path="/admin/cardKeys" element={<CardKeys />} />
+            <Route path="/admin/doorLocks" element={<DoorLocks />} />
+            <Route path="/admin/gateways" element={<Gateways />} />
+            <Route
+              path="/admin/hotelfacilities"
+              element={<HotelFacilities />}
+            />
+            <Route path="/admin/guests" element={<Guests />} />
             <Route path="/admin/bookings" element={<Bookings />} />
           </Route>
         </Route>

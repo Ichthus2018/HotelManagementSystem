@@ -43,7 +43,7 @@ const Register = () => {
     setError(null);
     setSuccessMessage("");
 
-    // 1. Client-side validation first
+    // 1. Client-side validation
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -51,7 +51,6 @@ const Register = () => {
 
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
-      // Display all password validation errors
       setError(passwordErrors.join(" "));
       return;
     }
@@ -59,32 +58,14 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // 2. Sign up with Supabase
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      // 2. Sign up with Supabase. The trigger will handle the profile creation.
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      // 3. Insert user profile into 'users' table
-      const user = data?.user;
-      if (user) {
-        const { error: insertError } = await supabase
-          .from("users")
-          .insert([
-            { id: user.id, email: user.email, admin: false, role: "customer" },
-          ]);
-
-        if (insertError) {
-          // This is a tricky state. The user is created in auth, but not in our DB.
-          // For production, you might want to log this for manual correction.
-          throw new Error(
-            "Could not save user profile. Please contact support."
-          );
-        }
+      if (error) {
+        throw error; // Let the catch block handle the Supabase error message
       }
 
       setSuccessMessage(
@@ -95,7 +76,10 @@ const Register = () => {
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err.message || "An unexpected error occurred.");
+      // Use the error message directly from Supabase for better feedback
+      setError(
+        err.message || "An unexpected error occurred during registration."
+      );
     } finally {
       setLoading(false);
     }

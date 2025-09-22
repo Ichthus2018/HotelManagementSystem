@@ -8,7 +8,7 @@ import {
 } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
-const DeleteRoomTypeConfirmationModal = ({
+const DeleteConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
@@ -92,4 +92,4 @@ const DeleteRoomTypeConfirmationModal = ({
   );
 };
 
-export default DeleteRoomTypeConfirmationModal;
+export default DeleteConfirmationModal;

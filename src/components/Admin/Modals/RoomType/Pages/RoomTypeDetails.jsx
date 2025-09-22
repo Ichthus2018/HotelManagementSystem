@@ -72,7 +72,6 @@ const RoomTypeDetails = ({ roomType, onBack, onEdit, onDelete }) => {
             alt={roomType.title}
             className="w-full h-full object-cover"
           />
-          {/* ... Add carousel buttons and indicators like in the example ... */}
         </div>
 
         {/* Info Header */}

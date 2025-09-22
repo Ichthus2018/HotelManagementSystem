@@ -13,8 +13,9 @@ import EmptyState from "../../components/ui/common/EmptyState";
 // Modals (consider lazy loading these as well if they are large)
 import AddRoomTypeModal from "../../components/Admin/Modals/RoomType/AddRoomTypeModal";
 import EditRoomTypeModal from "../../components/Admin/Modals/RoomType/EditRoomTypeModal";
-import DeleteRoomTypeConfirmationModal from "../../components/Admin/Modals/RoomType/DeleteRoomTypeConfirmationModal";
+
 import Loader from "../../components/ui/common/loader";
+import DeleteConfirmationModal from "../../components/ui/common/DeleteConfirmationModal";
 
 // Lazy-loaded View components
 const RoomTypeCardGrid = lazy(() =>
@@ -207,7 +208,7 @@ const RoomTypes = () => {
                   forcePage={currentPage - 1}
                   containerClassName="flex items-center justify-center gap-2 text-base font-medium"
                   pageLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
-                  activeLinkClassName="bg-orange-500 text-white border-orange-500 hover:bg-orange-600"
+                  activeLinkClassName="bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
                   previousLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
                   nextLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
                 />
@@ -230,7 +231,7 @@ const RoomTypes = () => {
             onSuccess={handleEditSuccess}
             roomType={selectedRoomType}
           />
-          <DeleteRoomTypeConfirmationModal
+          <DeleteConfirmationModal
             isOpen={isDeleteModalOpen}
             onClose={() => setIsDeleteModalOpen(false)}
             onConfirm={handleConfirmDelete}

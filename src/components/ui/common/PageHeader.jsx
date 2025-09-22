@@ -11,7 +11,7 @@ const PageHeader = ({ title, description, buttonText, onButtonClick }) => {
       {buttonText && onButtonClick && (
         <button
           onClick={onButtonClick}
-          className="inline-flex items-center justify-center gap-x-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+          className="inline-flex items-center justify-center gap-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           <PlusIcon className="h-5 w-5" />
           <span className="sm:inline">{buttonText}</span>
