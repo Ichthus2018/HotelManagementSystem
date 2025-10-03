@@ -92,14 +92,27 @@ export default function Sidebar({
       {/* Sidebar Header */}
       <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200">
         {sidebarOpen ? (
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-            Manny
+          <h1
+            className="text-[clamp(16px,1.4vw,22px)] font-normal"
+            style={{
+              fontFamily: "'Bodoni Moda', 'Playfair Display', serif",
+              letterSpacing: "0.06em",
+            }}
+          >
+            STAY SUITE 7
           </h1>
         ) : (
-          <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-            V
+          <span
+            className="text-[clamp(14px,1.2vw,18px)] font-normal"
+            style={{
+              fontFamily: "'Bodoni Moda', 'Playfair Display', serif",
+              letterSpacing: "0.08em",
+            }}
+          >
+            SS7
           </span>
         )}
+
         <button
           onClick={toggleSidebar}
           className="hidden md:flex items-center justify-center h-8 w-8 text-gray-500 hover:bg-gray-100 rounded-full"

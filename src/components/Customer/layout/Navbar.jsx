@@ -100,7 +100,7 @@ export default function Navbar() {
                 to="/"
                 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent"
               >
-                Manny
+                Stay Suite 7
               </Link>
             </div>
 
