@@ -14,9 +14,7 @@ import { IoIosCloseCircleOutline } from "react-icons/io";
 const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  // NEW: State for the charge type
   const [chargeType, setChargeType] = useState("fixed"); // 'fixed' or 'percentage'
-  // RENAMED: from price to value for clarity
   const [value, setValue] = useState("");
   const [isVatable, setIsVatable] = useState(true);
   const [isDefault, setIsDefault] = useState(false);
@@ -24,9 +22,10 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
   const [error, setError] = useState("");
 
   const handleClose = () => {
+    // Reset all fields when closing the add modal
     setName("");
     setDescription("");
-    setChargeType("fixed"); // Reset on close
+    setChargeType("fixed");
     setValue("");
     setIsVatable(true);
     setIsDefault(false);
@@ -41,11 +40,10 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
     const numericValue = parseFloat(value);
-    if (!value || numericValue < 0) {
+    if (!value || isNaN(numericValue) || numericValue < 0) {
       setError("A valid, non-negative value is required.");
       return;
     }
-    // NEW: Validation for percentage
     if (chargeType === "percentage" && numericValue > 100) {
       setError("Percentage cannot exceed 100.");
       return;
@@ -61,8 +59,8 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
           {
             name,
             description,
-            charge_type: chargeType, // Send the charge type
-            value: numericValue, // Send the value
+            charge_type: chargeType,
+            value: numericValue,
             is_vatable: isVatable,
             is_default: isDefault,
           },
@@ -83,6 +81,19 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
+        {/* Backdrop overlay */}
+        <TransitionChild
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/60" />
+        </TransitionChild>
+
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
             <TransitionChild
@@ -95,9 +106,25 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
               leaveTo="opacity-0 scale-95"
             >
               <DialogPanel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                {/* ... (Close Button and DialogTitle are unchanged) ... */}
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  aria-label="Close"
+                >
+                  <IoIosCloseCircleOutline />
+                </button>
+
+                {/* Dialog Title */}
+                <DialogTitle
+                  as="h3"
+                  className="text-lg font-semibold leading-6 text-gray-900"
+                >
+                  Add New Charge Item
+                </DialogTitle>
+
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                  {/* ... (Name and Description inputs are unchanged) ... */}
                   <div>
                     <label
                       htmlFor="name"
@@ -130,7 +157,6 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                     />
                   </div>
 
-                  {/* ===== NEW DYNAMIC PRICE/PERCENTAGE SECTION ===== */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
@@ -173,9 +199,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
                     </div>
                   </div>
-                  {/* ===== END NEW SECTION ===== */}
 
-                  {/* ... (Checkboxes, error message, and submit button are unchanged) ... */}
                   <div className="flex gap-4">
                     <div className="flex items-center">
                       <input

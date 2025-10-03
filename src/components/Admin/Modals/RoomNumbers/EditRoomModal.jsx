@@ -1,5 +1,3 @@
-// File: src/components/Admin/Modals/RoomStatus.jsx/EditRoomStatusModal.jsx
-
 import { useState, useEffect, Fragment } from "react";
 import {
   Dialog,
@@ -10,61 +8,97 @@ import {
 } from "@headlessui/react";
 import { IoIosCloseCircleOutline } from "react-icons/io";
 import supabase from "../../../../services/supabaseClient";
+import axios from "axios";
 
-// This component receives the room data to edit via the `roomToEdit` prop
-const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
+const API_BASE_URL = "http://localhost:5000/api";
+
+const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
   // Form state
   const [roomNumber, setRoomNumber] = useState("");
   const [status, setStatus] = useState("available");
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedLockId, setSelectedLockId] = useState("");
 
   // Data for dropdowns
   const [roomTypes, setRoomTypes] = useState([]);
   const [locations, setLocations] = useState([]);
+  // 👇 State name changed for clarity: it holds only the available locks
+  const [availableLocks, setAvailableLocks] = useState([]);
 
   // Control state
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Effect to pre-populate the form when a room is selected for editing
+  // Effect to pre-populate the form
   useEffect(() => {
     if (roomToEdit) {
       setRoomNumber(roomToEdit.room_number || "");
       setStatus(roomToEdit.status || "available");
       setSelectedRoomTypeId(roomToEdit.room_types?.id || "");
       setSelectedLocationId(roomToEdit.locations?.id || "");
-      setError(""); // Clear previous errors
+      setSelectedLockId(roomToEdit.lock_id || "");
+      setError("");
     }
   }, [roomToEdit]);
 
-  // Fetch related data for dropdowns when the modal opens
+  // 👇 THIS IS THE CORE LOGIC UPDATE
+  // Fetch related data and filter locks when the modal opens
   useEffect(() => {
-    if (isOpen) {
-      const fetchData = async () => {
-        setIsLoading(true);
-        try {
-          const [roomTypesRes, locationsRes] = await Promise.all([
-            supabase.from("room_types").select("id, title"),
-            supabase.from("locations").select("id, name"),
-          ]);
+    if (!isOpen) return;
 
-          if (roomTypesRes.error) throw roomTypesRes.error;
-          if (locationsRes.error) throw locationsRes.error;
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        // 1. Fetch all necessary data concurrently
+        const [
+          roomTypesRes,
+          locationsRes,
+          allLocksRes,
+          assignedLocksRes, // Get locks already in use
+        ] = await Promise.all([
+          supabase.from("room_types").select("id, title"),
+          supabase.from("locations").select("id, name"),
+          axios.get(`${API_BASE_URL}/locks`),
+          supabase.from("rooms").select("lock_id").not("lock_id", "is", null), // Fetch used lock_ids
+        ]);
 
-          setRoomTypes(roomTypesRes.data);
-          setLocations(locationsRes.data);
-        } catch (err) {
-          console.error("Failed to fetch room data:", err);
-          setError("Could not load necessary data. Please try again.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchData();
-    }
-  }, [isOpen]);
+        if (roomTypesRes.error) throw roomTypesRes.error;
+        if (locationsRes.error) throw locationsRes.error;
+        if (assignedLocksRes.error) throw assignedLocksRes.error;
+
+        setRoomTypes(roomTypesRes.data || []);
+        setLocations(locationsRes.data || []);
+
+        // --- LOCK FILTERING LOGIC ---
+        const allLocks = allLocksRes.data.list || [];
+        const assignedLockIds = new Set(
+          assignedLocksRes.data.map((room) => room.lock_id)
+        );
+        const currentRoomLockId = roomToEdit?.lock_id;
+
+        // 2. Filter logic: A lock is available if it's not in the assigned list,
+        //    OR if it's the one currently assigned to THIS room we are editing.
+        const filteredLocks = allLocks.filter(
+          (lock) =>
+            !assignedLockIds.has(lock.lockId) ||
+            lock.lockId === currentRoomLockId
+        );
+
+        // 3. Set the filtered list to state
+        setAvailableLocks(filteredLocks);
+      } catch (err) {
+        console.error("Failed to fetch modal data:", err);
+        setError("Could not load necessary data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isOpen, roomToEdit]); // Dependency on roomToEdit is crucial
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,7 +110,6 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
     setError("");
 
     try {
-      // Use .update() instead of .insert()
       const { error: updateError } = await supabase
         .from("rooms")
         .update({
@@ -84,12 +117,12 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
           status: status,
           room_type_id: selectedRoomTypeId,
           location_id: selectedLocationId || null,
+          lock_id: selectedLockId || null,
         })
-        .eq("id", roomToEdit.id); // Specify which room to update
+        .eq("id", roomToEdit.id);
 
       if (updateError) throw updateError;
-
-      onSuccess(); // This will trigger a data refresh and close the modal
+      onSuccess();
     } catch (err) {
       console.error("Error updating room:", err);
       if (err.message?.includes("duplicate key value")) {
@@ -145,7 +178,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
@@ -160,7 +193,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                   <div className="mt-4 text-center">Loading form data...</div>
                 ) : (
                   <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    {/* Form fields are identical to AddRoomStatusModal */}
+                    {/* Room Number */}
                     <div>
                       <label
                         htmlFor="roomNumber"
@@ -177,6 +210,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         required
                       />
                     </div>
+                    {/* Room Type */}
                     <div>
                       <label
                         htmlFor="roomType"
@@ -201,6 +235,31 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         ))}
                       </select>
                     </div>
+
+                    {/* 👇 LOCK DROPDOWN - MAPPED TO 'availableLocks' */}
+                    <div>
+                      <label
+                        htmlFor="lock"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Select a Lock
+                      </label>
+                      <select
+                        id="lock"
+                        value={selectedLockId}
+                        onChange={(e) => setSelectedLockId(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">None</option>
+                        {availableLocks.map((lock) => (
+                          <option key={lock.lockId} value={lock.lockId}>
+                            {lock.lockAlias} (ID: {lock.lockId})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Location */}
                     <div>
                       <label
                         htmlFor="location"
@@ -222,6 +281,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         ))}
                       </select>
                     </div>
+                    {/* Status */}
                     <div>
                       <label
                         htmlFor="status"
@@ -265,4 +325,4 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
   );
 };
 
-export default EditRoomStatusModal;
+export default EditRoomModal;

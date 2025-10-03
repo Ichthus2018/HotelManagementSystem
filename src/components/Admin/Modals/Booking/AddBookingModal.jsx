@@ -58,7 +58,6 @@ import {
   barangays,
 } from "select-philippines-address";
 import { useDebouncedSupabaseSearch } from "../../../../hooks/Admin/useDebouncedSupabaseSearch";
-import BreakdownItem from "../../../ui/common/BreakdownItem";
 import Card from "../../../ui/common/Card";
 import ReceiptLine from "../../../ui/common/ReceiptLine";
 
@@ -76,14 +75,6 @@ const statusOptions = [
   { value: "no_show", label: "No Show", icon: AlertCircle, color: "orange" }, // added
 ];
 
-const paymentMethods = [
-  { value: "cash", label: "Cash", icon: CreditCard },
-  { value: "credit_card", label: "Credit Card", icon: CreditCard },
-  { value: "bank_transfer", label: "Bank Transfer", icon: CreditCard },
-  { value: "e_wallet", label: "E-Wallet", icon: CreditCard },
-  { value: "others", label: "Others", icon: CreditCard },
-];
-
 const initialFormState = {
   // Guest Info
   guestMode: "new", // 'new' or 'existing'
@@ -97,10 +88,10 @@ const initialFormState = {
   idPhotoUrl: "",
   // ---- ADD THESE NEW FIELDS ----
   streetAddress: "",
-  region: "", // Changed from regionId
-  province: "", // Changed from provinceId
-  cityMunicipality: "", // Changed from cityMunicipalityId
-  barangay: "", // Changed from barangayId
+  region: "",
+  province: "",
+  cityMunicipality: "",
+  barangay: "",
   // Dates & Guests
   checkIn: "",
   checkOut: "",
@@ -115,7 +106,6 @@ const initialFormState = {
   bookingStatus: "pending",
   paymentStatus: "unpaid",
   specialRequests: "",
-
   // Financials
   subtotal: 0,
   discount: 0,

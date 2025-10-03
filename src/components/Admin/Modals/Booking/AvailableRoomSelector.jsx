@@ -16,9 +16,28 @@ export const AvailableRoomSelector = ({
   value,
   onChange,
   disabledRooms = [],
+  currentBookingId,
 }) => {
   const { availableRooms, isLoading, error, searchTerm, setSearchTerm } =
-    useAvailableRooms({ startDate, endDate });
+    useAvailableRooms({ startDate, endDate, currentBookingId });
+
+  // Helper function to get display text for a room
+  const getRoomDisplayText = (room) => {
+    if (!room) return "";
+
+    // Handle both direct room objects and nested structure
+    const roomData = room.room || room; // Support both structures
+    const roomNumber = roomData.room_number;
+    const roomType = roomData.room_types?.title || "Unknown Type";
+
+    return `${roomNumber} - ${roomType}`;
+  };
+
+  // Helper function to get room ID for filtering
+  const getRoomId = (room) => {
+    if (!room) return null;
+    return room.room ? room.room.id : room.id;
+  };
 
   if (!startDate || !endDate) {
     return (
@@ -31,7 +50,9 @@ export const AvailableRoomSelector = ({
   const finalOptions = useMemo(() => {
     if (!availableRooms) return [];
     return availableRooms.filter(
-      (room) => room.id === value?.id || !disabledRooms.includes(room.id)
+      (room) =>
+        getRoomId(room) === getRoomId(value) ||
+        !disabledRooms.includes(getRoomId(room))
     );
   }, [availableRooms, disabledRooms, value]);
 
@@ -41,11 +62,7 @@ export const AvailableRoomSelector = ({
         <div className="relative w-full cursor-default overflow-hidden rounded-md border border-gray-300 bg-white text-left shadow-sm focus-within:ring-1 focus-within:ring-indigo-500">
           <ComboboxInput
             className="w-full h-10 px-3 pr-10 text-sm leading-5 text-gray-900 border-none focus:ring-0"
-            displayValue={(room) =>
-              room && room.room_types
-                ? `${room.room_number} - ${room.room_types.title}`
-                : ""
-            }
+            displayValue={getRoomDisplayText}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search or select a room..."
           />
@@ -79,7 +96,7 @@ export const AvailableRoomSelector = ({
 
             {finalOptions.map((room) => (
               <ComboboxOption
-                key={room.id}
+                key={getRoomId(room)}
                 value={room}
                 className={({ active }) =>
                   `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
@@ -94,8 +111,7 @@ export const AvailableRoomSelector = ({
                         selected ? "font-medium" : "font-normal"
                       }`}
                     >
-                      {room.room_number} -{" "}
-                      {room.room_types?.title || "Unknown Type"}
+                      {getRoomDisplayText(room)}
                     </span>
                     {selected ? (
                       <span

@@ -1,14 +1,15 @@
-import { useState } from "react";
 import {
-  TrashIcon,
-  PencilSquareIcon,
-  PhotoIcon,
-  ClockIcon,
-  UsersIcon,
-  MapPinIcon,
   MagnifyingGlassPlusIcon,
+  PencilSquareIcon,
+} from "@heroicons/react/20/solid";
+import {
   CheckIcon,
-} from "@heroicons/react/24/outline";
+  ClockIcon,
+  MapPinIcon,
+  TrashIcon,
+  UsersIcon,
+} from "lucide-react";
+import { useState } from "react";
 
 // Import the Lightbox component and its styles
 import Lightbox from "yet-another-react-lightbox";

@@ -1,5 +1,3 @@
-// File: src/components/Admin/Room/AddRoomModal.jsx
-
 import { useState, useEffect, Fragment } from "react";
 import {
   Dialog,
@@ -8,8 +6,12 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
-import { IoIosCloseCircleOutline } from "react-icons/io"; // Imported close icon
-import supabase from "../../../../services/supabaseClient"; // Adjust path as needed
+import { IoIosCloseCircleOutline } from "react-icons/io";
+import supabase from "../../../../services/supabaseClient";
+import axios from "axios";
+
+// Define your API base URL for the locks service
+import { API_BASE_URL } from "../../../../services/api";
 
 const AddRoomModal = ({
   isOpen,
@@ -22,10 +24,12 @@ const AddRoomModal = ({
   const [status, setStatus] = useState("available");
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [selectedLockId, setSelectedLockId] = useState("");
 
   // Data for dropdowns
   const [roomTypes, setRoomTypes] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [availableLocks, setAvailableLocks] = useState([]); // State for filtered locks
 
   // Control state
   const [isLoading, setIsLoading] = useState(false);
@@ -40,16 +44,36 @@ const AddRoomModal = ({
       setIsLoading(true);
       setError("");
       try {
-        const { data: locationsData, error: locationsError } = await supabase
-          .from("locations")
-          .select("id, name");
+        // Fetch locations, all locks from API, and assigned locks from Supabase concurrently
+        const [locationsRes, locksRes, assignedLocksRes] = await Promise.all([
+          supabase.from("locations").select("id, name"),
+          axios.get(`${API_BASE_URL}/locks`),
+          supabase.from("rooms").select("lock_id").not("lock_id", "is", null),
+        ]);
 
-        if (locationsError) throw locationsError;
-        setLocations(locationsData || []);
+        // Handle errors
+        if (locationsRes.error) throw locationsRes.error;
+        if (assignedLocksRes.error) throw assignedLocksRes.error;
 
+        // Process data
+        setLocations(locationsRes.data || []);
+
+        // ** LOCK FILTERING LOGIC FOR ADD MODAL **
+        // 1. Get all locks from the external API
+        const allLocks = locksRes.data.list || [];
+        // 2. Get all lock_ids that are already in use from Supabase
+        const assignedLockIds = new Set(
+          assignedLocksRes.data.map((room) => room.lock_id)
+        );
+        // 3. Filter the first list, removing any used locks
+        const filteredLocks = allLocks.filter(
+          (lock) => !assignedLockIds.has(lock.lockId)
+        );
+        setAvailableLocks(filteredLocks);
+
+        // Handle pre-selected or all room types
         if (preselectedRoomTypeId) {
           setSelectedRoomTypeId(preselectedRoomTypeId);
-
           const { data: typeData, error: typeError } = await supabase
             .from("room_types")
             .select("title")
@@ -67,7 +91,6 @@ const AddRoomModal = ({
           const { data: typesData, error: typesError } = await supabase
             .from("room_types")
             .select("id, title");
-
           if (typesError) throw typesError;
           setRoomTypes(typesData || []);
         }
@@ -87,6 +110,7 @@ const AddRoomModal = ({
     setStatus("available");
     setSelectedRoomTypeId("");
     setSelectedLocationId("");
+    setSelectedLockId("");
     setError("");
   };
 
@@ -106,6 +130,7 @@ const AddRoomModal = ({
           status: status,
           room_type_id: selectedRoomTypeId,
           location_id: selectedLocationId || null,
+          lock_id: selectedLockId || null, // Add lock_id to the insert payload
         },
       ]);
 
@@ -166,11 +191,10 @@ const AddRoomModal = ({
               leaveTo="opacity-0 scale-95"
             >
               <DialogPanel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                {/* Close Button */}
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
@@ -185,6 +209,7 @@ const AddRoomModal = ({
                   <div className="mt-4 text-center">Loading form data...</div>
                 ) : (
                   <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                    {/* Room Number Input */}
                     <div>
                       <label
                         htmlFor="roomNumber"
@@ -201,6 +226,7 @@ const AddRoomModal = ({
                         required
                       />
                     </div>
+                    {/* Room Type Dropdown */}
                     <div>
                       <label
                         htmlFor="roomType"
@@ -211,8 +237,11 @@ const AddRoomModal = ({
                       <select
                         id="roomType"
                         value={selectedRoomTypeId}
-                        disabled
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 bg-gray-100 text-gray-600 cursor-not-allowed"
+                        disabled={!!preselectedRoomTypeId}
+                        className={`mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                          preselectedRoomTypeId &&
+                          "bg-gray-100 text-gray-600 cursor-not-allowed"
+                        }`}
                       >
                         {roomTypes.map((type) => (
                           <option key={type.id} value={type.id}>
@@ -222,12 +251,36 @@ const AddRoomModal = ({
                       </select>
                     </div>
 
+                    {/* Lock Dropdown */}
+                    <div>
+                      <label
+                        htmlFor="lock"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Select a Lock (Optional)
+                      </label>
+                      <select
+                        id="lock"
+                        value={selectedLockId}
+                        onChange={(e) => setSelectedLockId(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">None</option>
+                        {availableLocks.map((lock) => (
+                          <option key={lock.lockId} value={lock.lockId}>
+                            {lock.lockAlias} (ID: {lock.lockId})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Other fields... */}
                     <div>
                       <label
                         htmlFor="location"
                         className="block text-sm font-medium text-gray-700"
                       >
-                        Location
+                        Location (Optional)
                       </label>
                       <select
                         id="location"

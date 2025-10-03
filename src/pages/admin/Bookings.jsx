@@ -4,21 +4,25 @@ import ReactPaginate from "react-paginate";
 import { Plus, Search, Loader2 } from "lucide-react";
 
 import BookingList from "../../components/Admin/Modals/Booking/Pages/BookingList";
-import AddBookingModal from "../../components/Admin/Modals/Booking/AddBookingModal";
+import AddBookingModal from "../../components/Admin/Modals/Booking/AddBookingModal/AddBookingModal";
+import ManageCardsModal from "../../components/Admin/Modals/Booking/ManageCardsModal";
 
 const Bookings = () => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
+
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [selectedBookingForCards, setSelectedBookingForCards] = useState(null);
+
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 10;
 
-  // Debounced Search
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
@@ -42,16 +46,17 @@ const Bookings = () => {
       .from("bookings")
       .select(
         `
-          id, check_in_date, check_out_date, status, grand_total,
-          room_subtotal, charges_subtotal, discount, vat_amount,
-          guests ( id, first_name, last_name ),
-          booking_rooms ( id, num_nights, price_at_booking, rooms ( room_number ) ),
-          booking_charges ( id, quantity,
-            unit_price_at_booking,
-            charge_type_at_booking,
-           charge_items ( name ) ),
-          payments:booking_payments ( id, amount, method )
-        `,
+      id, check_in_date, check_out_date, status, grand_total,
+      room_subtotal, charges_subtotal, discount, vat_amount, total_paid, notes,
+      num_adults, num_children, discount_type,
+      guests ( * ),
+      booking_rooms ( id, num_nights, price_at_booking, rooms ( id, room_number, lock_id, room_types ( * ) ) ),
+      booking_charges ( id, quantity,
+        unit_price_at_booking,
+        charge_type_at_booking,
+       charge_items ( id, name ) ),
+      payments:booking_payments ( id, amount, method ) 
+        `, // <-- FIX: Removed payment_date from here
         { count: "exact" }
       )
       .order("created_at", { ascending: false })
@@ -82,29 +87,24 @@ const Bookings = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, debouncedSearchTerm]);
 
-  // === NEW: DELETE HANDLER FUNCTION ===
   const handleDeleteBooking = async (bookingId) => {
-    // 1. Confirm with the user
     if (
       !window.confirm(
         "Are you sure you want to delete this booking? This action cannot be undone."
       )
     ) {
-      return; // Abort if user cancels
+      return;
     }
 
-    // 2. Perform the delete operation on Supabase
     const { error: deleteError } = await supabase
       .from("bookings")
       .delete()
       .eq("id", bookingId);
 
-    // 3. Handle the result
     if (deleteError) {
       console.error("Error deleting booking:", deleteError);
       alert(`Failed to delete booking: ${deleteError.message}`);
     } else {
-      // 4. Refresh the data to update the UI
       fetchBookings();
     }
   };
@@ -113,16 +113,44 @@ const Bookings = () => {
     setCurrentPage(event.selected);
   };
 
-  const handleAddSuccess = () => {
-    setIsAddModalOpen(false);
-    setSearchTerm("");
-    if (currentPage === 0) {
-      fetchBookings();
-    } else {
-      setCurrentPage(0);
-    }
+  const handleOpenAddModal = () => {
+    setEditingBooking(null);
+    setIsModalOpen(true);
   };
 
+  const handleOpenEditModal = (booking) => {
+    setEditingBooking(booking);
+    setIsModalOpen(true);
+  };
+
+  // --- NEW HANDLERS FOR CARD MODAL ---
+  const handleOpenManageCardsModal = (booking) => {
+    setSelectedBookingForCards(booking);
+    setIsCardModalOpen(true);
+  };
+
+  const handleCloseManageCardsModal = () => {
+    setIsCardModalOpen(false);
+    setSelectedBookingForCards(null);
+    // Optionally, you can refetch bookings here if cards were changed
+    fetchBookings();
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingBooking(null);
+  };
+
+  const handleSuccess = () => {
+    handleCloseModal();
+    setSearchTerm(""); // Reset search term after adding/editing
+
+    if (currentPage !== 0) {
+      setCurrentPage(0);
+    } else {
+      fetchBookings();
+    }
+  };
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -149,15 +177,20 @@ const Bookings = () => {
         </div>
       );
     }
-    // Pass the handleDeleteBooking function as the onDelete prop
-    return <BookingList bookings={bookings} onDelete={handleDeleteBooking} />;
+    return (
+      <BookingList
+        bookings={bookings}
+        onDelete={handleDeleteBooking}
+        onEdit={handleOpenEditModal}
+        onManageCards={handleOpenManageCardsModal}
+      />
+    );
   };
 
   return (
     <>
       <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
@@ -166,7 +199,7 @@ const Bookings = () => {
               </p>
             </div>
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={handleOpenAddModal}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -174,7 +207,6 @@ const Bookings = () => {
             </button>
           </div>
 
-          {/* Search Bar */}
           <div className="mb-6">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -190,7 +222,6 @@ const Bookings = () => {
             </div>
           </div>
 
-          {/* Main Content Area */}
           <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl">
             {renderContent()}
             {totalCount > PAGE_SIZE && (
@@ -229,10 +260,19 @@ const Bookings = () => {
         </div>
       </div>
 
+      {selectedBookingForCards && (
+        <ManageCardsModal
+          isOpen={isCardModalOpen}
+          onClose={handleCloseManageCardsModal}
+          booking={selectedBookingForCards}
+        />
+      )}
+
       <AddBookingModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={handleAddSuccess}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleSuccess}
+        initialData={editingBooking}
       />
     </>
   );

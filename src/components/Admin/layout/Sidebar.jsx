@@ -24,8 +24,18 @@ import {
   FaServer,
   FaHotel,
   FaMoneyBill,
+  FaFolder,
+  FaFolderOpen,
+  FaBoxes,
+  FaListAlt,
+  FaTags,
+  FaCubes,
+  FaKeycdn,
 } from "react-icons/fa";
 import PopoverMenuItem from "./PopoverMenuItem";
+import { RiHotelFill } from "react-icons/ri";
+import { GiStatic } from "react-icons/gi";
+import { FcStatistics } from "react-icons/fc";
 
 // Reusable Nav Item Component - It's self-contained and perfect to live here.
 const NavItem = ({ to, icon, label, sidebarOpen, closeSidebar }) => (
@@ -122,13 +132,27 @@ export default function Sidebar({
             )}
             <ul className="space-y-2">
               <NavItem
-                to="/admin/roomTypes"
-                icon={<FaBed size={20} />}
-                label="Room Types"
+                to="/admin/dashboard"
+                icon={<FcStatistics size={20} />}
+                label="Dashboard"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/hotelInformation"
+                icon={<RiHotelFill size={20} />}
+                label="Hotel Information"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
 
+              <NavItem
+                to="/admin/roomTypes"
+                icon={<FaBed size={20} />}
+                label="Room"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
               {/* ... other NavItems ... */}
               {/* <NavItem
                 to="/admin/roomNumbers"
@@ -137,6 +161,14 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               /> */}
+              <NavItem
+                to="/admin/personnel"
+                icon={<FaUsers size={20} />}
+                label="Personnel"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+
               <NavItem
                 to="/admin/roomStatus"
                 icon={<FaClipboardList size={20} />}
@@ -151,6 +183,13 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+              <NavItem
+                to="/admin/item"
+                icon={<FaCubes size={20} />} // Item/Type grouping
+                label="Items"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
             </ul>
           </li>
 
@@ -162,10 +201,17 @@ export default function Sidebar({
               </h2>
             )}
             <ul className="space-y-2">
-              <NavItem
+              {/* <NavItem
                 to="/admin/cardKeys"
                 icon={<FaKey size={20} />}
                 label="Card Keys"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              /> */}
+              <NavItem
+                to="/admin/lockCardManager"
+                icon={<FaKey size={20} />}
+                label="Lock Card Manager"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
@@ -186,7 +232,58 @@ export default function Sidebar({
               />
             </ul>
           </li>
-
+          {/* Item Maintenance Section */}
+          <li>
+            {sidebarOpen && (
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Item Maintenance
+              </h2>
+            )}
+            <ul className="space-y-2">
+              <NavItem
+                to="/admin/categories1"
+                icon={<FaFolder size={20} />} // Category icon
+                label="Categories 1"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/categories2"
+                icon={<FaFolderOpen size={20} />} // Another folder icon
+                label="Categories 2"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/categories3"
+                icon={<FaBoxes size={20} />} // For grouped categories
+                label="Categories 3"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/categories4"
+                icon={<FaListAlt size={20} />} // List-type icon
+                label="Categories 4"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/categories5"
+                icon={<FaTags size={20} />} // Tagging categories
+                label="Categories 5"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/itemType"
+                icon={<FaCubes size={20} />} // Item/Type grouping
+                label="Item Type"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+            </ul>
+          </li>
           {/* Operations Section */}
           <li>
             {sidebarOpen && (
@@ -219,7 +316,7 @@ export default function Sidebar({
               <NavItem
                 to="/admin/chargeItems"
                 icon={<FaMoneyBill size={20} />}
-                label="Room Types"
+                label="Charge Items"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />

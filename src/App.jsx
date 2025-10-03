@@ -20,13 +20,24 @@ import RoomTypes from "./pages/admin/RoomTypes";
 import RoomNumbers from "./pages/admin/RoomNumbers";
 import RoomLocations from "./pages/admin/roomlocations";
 import CardKeys from "./pages/admin/cardKeys";
-import Bookings from "./pages/admin/bookings";
+import Bookings from "./pages/admin/Bookings";
 import RoomStatus from "./pages/admin/RoomStatus";
 import DoorLocks from "./pages/admin/DoorLocks";
 import Gateways from "./pages/admin/Gateways";
 import HotelFacilities from "./pages/admin/HotelFacilities";
 import Guests from "./pages/admin/Guests";
 import ChargeItems from "./pages/admin/ChargeItems";
+import HotelInformation from "./pages/admin/HotelInformation";
+import Categories1 from "./pages/admin/Categories1";
+import Categories2 from "./pages/admin/Categories2";
+import Categories3 from "./pages/admin/Categories3";
+import Categories4 from "./pages/admin/Categories4";
+import Categories5 from "./pages/admin/Categories5";
+import ItemType from "./pages/admin/ItemType";
+import Items from "./pages/admin/Items";
+import Personnel from "./pages/admin/Personnel";
+import LockCardManager from "./pages/admin/LockCardManager";
+import Dashboard from "./pages/admin/Dashboard";
 
 function App() {
   const { user, loading } = useAuth();
@@ -48,6 +59,10 @@ function App() {
               path="/admin/roomNumbers/:roomTypeId"
               element={<RoomNumbers />}
             />
+            <Route
+              path="/admin/hotelInformation"
+              element={<HotelInformation />}
+            />
             <Route path="/admin/chargeItems" element={<ChargeItems />} />
             <Route path="/admin/roomNumbers" element={<RoomNumbers />} />
             <Route path="/admin/roomStatus" element={<RoomStatus />} />
@@ -55,12 +70,25 @@ function App() {
             <Route path="/admin/cardKeys" element={<CardKeys />} />
             <Route path="/admin/doorLocks" element={<DoorLocks />} />
             <Route path="/admin/gateways" element={<Gateways />} />
+            <Route path="/admin/categories1" element={<Categories1 />} />
+            <Route path="/admin/categories2" element={<Categories2 />} />
+            <Route path="/admin/categories3" element={<Categories3 />} />
+            <Route path="/admin/categories4" element={<Categories4 />} />
+            <Route path="/admin/categories5" element={<Categories5 />} />
+            <Route path="/admin/itemType" element={<ItemType />} />
+            <Route path="/admin/item" element={<Items />} />
+            <Route path="/admin/personnel" element={<Personnel />} />
+            <Route
+              path="/admin/lockCardManager"
+              element={<LockCardManager />}
+            />
             <Route
               path="/admin/hotelfacilities"
               element={<HotelFacilities />}
             />
             <Route path="/admin/guests" element={<Guests />} />
             <Route path="/admin/bookings" element={<Bookings />} />
+            <Route path="/admin/dashboard" element={<Dashboard />} />
           </Route>
         </Route>
 
