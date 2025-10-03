@@ -105,7 +105,7 @@ const AddBookingModalContent = ({ initialData }) => {
           id: initialData.id,
           bookingReference: initialData.booking_reference || initialData.id,
           bookingStatus: initialData.status,
-          bookingStatus: initialData.status,
+
           checkIn: initialData.check_in_date,
           checkOut: initialData.check_out_date,
           nights: calculateNights(

@@ -47,7 +47,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/HotelManagementSystem">
       <Routes>
         {/*
           CHANGE 1: The root path "/" is now a conditional redirect.
