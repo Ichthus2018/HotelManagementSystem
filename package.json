@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/bodoni-moda": "^5.2.7",
+    "@fontsource/playfair-display": "^5.2.8",
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.57.0",

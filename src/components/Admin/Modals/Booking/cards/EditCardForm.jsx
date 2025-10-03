@@ -1,12 +1,15 @@
+// src/components/.../cards/EditCardForm.js
+
 import { useState } from "react";
 import supabase from "../../../../../services/supabaseClient";
+import axios from "axios"; // Import axios
+import { API_BASE_URL } from "../../../../../services/api"; // Your API base URL
 import { Loader2 } from "lucide-react";
 
 // Helper function to format dates for the datetime-local input
 const formatDateForInput = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
-  // Returns date in "YYYY-MM-DDTHH:mm" format
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
@@ -14,7 +17,6 @@ const formatDateForInput = (dateString) => {
 
 const EditCardForm = ({ card, onSuccess }) => {
   const [formData, setFormData] = useState({
-    card_name: card.card_name || "",
     valid_from: formatDateForInput(card.valid_from),
     valid_until: formatDateForInput(card.valid_until),
   });
@@ -29,34 +31,51 @@ const EditCardForm = ({ card, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!formData.card_name) {
-      setError("Card name is required.");
-      return;
-    }
     setIsSubmitting(true);
 
+    if (!card.rooms?.lock_id || !card.card_id_on_lock) {
+      setError("Card is missing lock information. Cannot update.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Convert dates to TTLock format (milliseconds timestamp)
+    const startTimestamp = formData.valid_from
+      ? new Date(formData.valid_from).getTime()
+      : 0;
+    const endTimestamp = formData.valid_until
+      ? new Date(formData.valid_until).getTime()
+      : 0;
+
     try {
-      // NOTE: Here you would first call an Edge Function to update the physical lock.
-      // This might involve deleting the old card and adding a new one with the updated validity.
-
-      const updateData = {
-        card_name: formData.card_name,
-        // Convert local datetime back to ISO string for Supabase (timestamp with time zone)
-        valid_from: new Date(formData.valid_from).toISOString(),
-        valid_until: new Date(formData.valid_until).toISOString(),
+      // 1. Update the card on the physical lock via API
+      const apiPayload = {
+        startDate: startTimestamp,
+        endDate: endTimestamp,
       };
+      await axios.put(
+        `${API_BASE_URL}/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`,
+        apiPayload
+      );
 
+      // 2. If successful, update the record in Supabase
+      const dbUpdateData = {
+        valid_from: new Date(startTimestamp).toISOString(),
+        valid_until: new Date(endTimestamp).toISOString(),
+      };
       const { error: dbError } = await supabase
         .from("booking_cards")
-        .update(updateData)
+        .update(dbUpdateData)
         .eq("id", card.id);
 
       if (dbError) throw dbError;
 
+      // 3. Success
       onSuccess();
     } catch (err) {
       console.error("Error updating card:", err);
-      setError(err.message || "An unexpected error occurred.");
+      const apiErrorMessage = err.response?.data?.error || err.message;
+      setError(`Error: ${apiErrorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -66,22 +85,14 @@ const EditCardForm = ({ card, onSuccess }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <div>
-        <label
-          htmlFor="card_name"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label className="block text-sm font-medium text-gray-700">
           Card Name
         </label>
-        <input
-          type="text"
-          name="card_name"
-          id="card_name"
-          value={formData.card_name}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm"
-          required
-        />
+        <p className="mt-1 text-gray-900 bg-gray-100 p-2 rounded-md">
+          {card.card_name}
+        </p>
       </div>
+
       <div>
         <label
           htmlFor="valid_from"
@@ -119,7 +130,7 @@ const EditCardForm = ({ card, onSuccess }) => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:bg-yellow-300 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:bg-yellow-300"
         >
           {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />

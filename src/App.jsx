@@ -49,11 +49,42 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* === Admin Routes === */}
+        {/*
+          CHANGE 1: The root path "/" is now a conditional redirect.
+          - If no user, redirect to "/login". This makes login the default.
+          - If user is admin, redirect to "/admin".
+          - If user is a customer, redirect to "/home".
+        */}
+        <Route
+          path="/"
+          element={
+            !user ? (
+              <Navigate to="/login" replace />
+            ) : user.admin ? (
+              <Navigate to="/admin" replace />
+            ) : (
+              <Navigate to="/home" replace />
+            )
+          }
+        />
+
+        {/*
+          CHANGE 2: Handle login/register routes separately.
+          - If a user is already logged in, redirect them away from the login page.
+        */}
+        <Route
+          path="/login"
+          element={!user ? <Login /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/register"
+          element={!user ? <Register /> : <Navigate to="/" replace />}
+        />
+
+        {/* === Admin Routes (No changes needed here) === */}
         <Route element={<AdminLayout />}>
           <Route element={<AdminRoutes />}>
             <Route path="/admin" element={<LandingPage />} />
-            <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/roomTypes" element={<RoomTypes />} />
             <Route
               path="/admin/roomNumbers/:roomTypeId"
@@ -89,25 +120,27 @@ function App() {
             <Route path="/admin/guests" element={<Guests />} />
             <Route path="/admin/bookings" element={<Bookings />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
+            {/* A catch-all for any other /admin URL to redirect to the admin home */}
+            <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Route>
 
-        {/* === Customer & Public Routes === */}
+        {/*
+          CHANGE 3: Customer routes are now on specific paths like "/home".
+          - The CustomerLayout now wraps these specific protected routes.
+        */}
         <Route element={<CustomerLayout />}>
-          <Route
-            path="/"
-            element={
-              user?.admin ? <Navigate to="/admin" replace /> : <HomePage />
-            }
-          />
           <Route element={<ProtectedRoute />}>
+            <Route path="/home" element={<HomePage />} />
             <Route path="/my-bookings" element={<BookingPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/*
+          CHANGE 4: The catch-all route now redirects to the root "/".
+          The logic at "/" will then handle sending the user to the correct page.
+        */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

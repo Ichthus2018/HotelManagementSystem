@@ -1,6 +1,10 @@
+// src/components/.../ManageCardsModal.js
+
 import { useState, useEffect, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import supabase from "../../../../services/supabaseClient";
+import axios from "axios"; // Import axios
+import { API_BASE_URL } from "../../../../services/api"; // Your API base URL
 import {
   X,
   Plus,
@@ -9,30 +13,28 @@ import {
   ArrowLeft,
   KeyRound,
   Loader2,
+  Info,
 } from "lucide-react";
 
-// The new form components we are about to create
 import AddCardForm from "./cards/AddCardForm";
 import EditCardForm from "./cards/EditCardForm";
 
 const ManageCardsModal = ({ isOpen, onClose, booking }) => {
-  // Controls which view is visible: 'chooser', 'add', 'edit', 'delete'
   const [view, setView] = useState("chooser");
-  // Stores the room selected in the 'add' flow
   const [selectedRoom, setSelectedRoom] = useState(null);
-  // Stores the card selected in the 'edit' flow
   const [cardToEdit, setCardToEdit] = useState(null);
 
   const [cards, setCards] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // For delete operations
   const [error, setError] = useState(null);
 
-  // Fetch all cards associated with this booking when the modal opens
   const fetchBookingCards = async () => {
     if (!booking) return;
     setIsLoading(true);
     setError(null);
     try {
+      // Ensure you select the lock_id and the card_id_on_lock
       const { data, error } = await supabase
         .from("booking_cards")
         .select(`*, rooms(room_number, lock_id)`)
@@ -51,6 +53,8 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
 
   useEffect(() => {
     if (isOpen) {
+      // Reset view to chooser every time modal is opened
+      setView("chooser");
       fetchBookingCards();
     }
   }, [isOpen, booking]);
@@ -58,38 +62,53 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
   const handleClose = () => {
     setView("chooser");
     setSelectedRoom(null);
-    setCardToEdit(null); // Reset card to edit on close
+    setCardToEdit(null);
     onClose();
   };
 
-  // Handler for deleting a single card
+  // --- NEW: Refactored Delete Handler ---
   const handleDeleteCard = async (cardToDelete) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete card "${cardToDelete.card_name}"?`
+        `Are you sure you want to delete card "${cardToDelete.card_name}" from the lock and database?`
       )
     )
       return;
 
+    if (!cardToDelete.rooms?.lock_id || !cardToDelete.card_id_on_lock) {
+      alert(
+        "Error: Card is missing lock information. Cannot delete from lock."
+      );
+      return;
+    }
+
+    setIsProcessing(true);
     try {
-      // NOTE: Here you would call an edge function to delete from the physical lock first.
-      // For now, we'll just delete from the database.
-      const { error } = await supabase
+      // 1. Delete from TTLock API first
+      await axios.delete(
+        `${API_BASE_URL}/locks/${cardToDelete.rooms.lock_id}/cards/${cardToDelete.card_id_on_lock}`
+      );
+
+      // 2. If successful, delete from Supabase DB
+      const { error: dbError } = await supabase
         .from("booking_cards")
         .delete()
         .eq("id", cardToDelete.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      fetchBookingCards(); // Refresh the UI
       alert("Card deleted successfully.");
+      fetchBookingCards(); // Refresh list
     } catch (err) {
       console.error("Failed to delete card:", err);
-      alert(`Error: ${err.message}`);
+      const apiErrorMessage = err.response?.data?.error || err.message;
+      alert(`Error deleting card: ${apiErrorMessage}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Handler for deleting all GUEST cards for this booking
+  // --- NEW: Refactored Delete All Handler ---
   const handleDeleteAllGuestCards = async () => {
     const guestCards = cards.filter((c) => c.card_type === "guest");
     if (guestCards.length === 0) {
@@ -98,25 +117,46 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     }
     if (
       !window.confirm(
-        `Are you sure you want to delete all ${guestCards.length} guest cards for this booking?`
+        `Are you sure you want to delete all ${guestCards.length} guest cards for this booking from the locks and database?`
       )
     )
       return;
 
+    setIsProcessing(true);
     try {
+      // 1. Create all API delete promises
+      const deletePromises = guestCards.map((card) => {
+        if (!card.rooms?.lock_id || !card.card_id_on_lock) {
+          console.warn(
+            `Skipping card ${card.card_name} due to missing lock info.`
+          );
+          return Promise.resolve(); // Resolve immediately if info is missing
+        }
+        return axios.delete(
+          `${API_BASE_URL}/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`
+        );
+      });
+
+      // Execute all API calls
+      await Promise.all(deletePromises);
+
+      // 2. If all API calls were successful, delete from Supabase DB
       const cardIdsToDelete = guestCards.map((c) => c.id);
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from("booking_cards")
         .delete()
         .in("id", cardIdsToDelete);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
+      alert("All guest cards have been deleted successfully.");
       fetchBookingCards();
-      alert("All guest cards have been deleted.");
     } catch (err) {
       console.error("Failed to delete all guest cards:", err);
-      alert(`Error: ${err.message}`);
+      const apiErrorMessage = err.response?.data?.error || err.message;
+      alert(`An error occurred while deleting cards: ${apiErrorMessage}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -125,10 +165,10 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     if (view === "add" && !selectedRoom) title = "Step 1: Select a Room";
     if (view === "add" && selectedRoom)
       title = `Step 2: Add Card to Room ${selectedRoom.rooms.room_number}`;
-    if (view === "edit" && !cardToEdit) title = "Edit Registered Cards";
+    if (view === "edit") title = "Select a Card to Edit";
     if (view === "edit" && cardToEdit)
       title = `Editing Card: ${cardToEdit.card_name}`;
-    if (view === "delete") title = "Delete Registered Cards";
+    if (view === "delete") title = "Select a Card to Delete";
 
     return (
       <div className="flex items-center justify-between p-4 border-b">
@@ -143,7 +183,9 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     );
   };
 
+  // --- START OF RENDER CONTENT ---
   const renderContent = () => {
+    // Top-level loading and error states
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-48">
@@ -155,38 +197,79 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       return <div className="text-center p-8 text-red-500">{error}</div>;
     }
 
-    // --- VIEW 1: Chooser ---
+    // --- VIEW 1: Chooser (Main View with Card List) ---
     if (view === "chooser") {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-          <button
-            onClick={() => setView("add")}
-            className="flex flex-col items-center justify-center p-6 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-blue-300"
-          >
-            <Plus className="w-10 h-10 text-blue-600 mb-2" />
-            <span className="font-semibold text-blue-800">Add Card</span>
-          </button>
-          <button
-            onClick={() => setView("edit")}
-            className="flex flex-col items-center justify-center p-6 bg-yellow-50 hover:bg-yellow-100 rounded-lg border-2 border-dashed border-yellow-400"
-          >
-            <Edit className="w-10 h-10 text-yellow-600 mb-2" />
-            <span className="font-semibold text-yellow-800">Edit Cards</span>
-          </button>
-          <button
-            onClick={() => setView("delete")}
-            className="flex flex-col items-center justify-center p-6 bg-red-50 hover:bg-red-100 rounded-lg border-2 border-dashed border-red-300"
-          >
-            <Trash2 className="w-10 h-10 text-red-600 mb-2" />
-            <span className="font-semibold text-red-800">Delete Cards</span>
-          </button>
+        <div className="p-6">
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setView("add")}
+              className="flex flex-col items-center justify-center p-6 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-blue-300 transition-colors"
+            >
+              <Plus className="w-10 h-10 text-blue-600 mb-2" />
+              <span className="font-semibold text-blue-800">Add Card</span>
+            </button>
+            <button
+              onClick={() => setView("edit")}
+              disabled={cards.length === 0}
+              className="flex flex-col items-center justify-center p-6 bg-yellow-50 hover:bg-yellow-100 rounded-lg border-2 border-dashed border-yellow-400 transition-colors disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed"
+            >
+              <Edit className="w-10 h-10 text-yellow-600 mb-2 disabled:text-gray-400" />
+              <span className="font-semibold text-yellow-800 disabled:text-gray-500">
+                Edit Cards
+              </span>
+            </button>
+            <button
+              onClick={() => setView("delete")}
+              disabled={cards.length === 0}
+              className="flex flex-col items-center justify-center p-6 bg-red-50 hover:bg-red-100 rounded-lg border-2 border-dashed border-red-300 transition-colors disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-10 h-10 text-red-600 mb-2 disabled:text-gray-400" />
+              <span className="font-semibold text-red-800 disabled:text-gray-500">
+                Delete Cards
+              </span>
+            </button>
+          </div>
+
+          {/* Divider and Title */}
+          <div className="mt-6 pt-4 border-t">
+            <h4 className="font-semibold text-gray-800">Registered Cards</h4>
+          </div>
+
+          {/* Card List */}
+          {cards.length === 0 ? (
+            <div className="text-center text-gray-500 py-12 flex flex-col items-center">
+              <Info className="w-8 h-8 text-gray-400 mb-2" />
+              <p>No cards have been registered for this booking yet.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200 mt-2">
+              {cards.map((card) => (
+                <li
+                  key={card.id}
+                  className="py-3 flex justify-between items-center"
+                >
+                  <div>
+                    <p className="font-semibold">{card.card_name}</p>
+                    <p className="text-sm text-gray-500">
+                      Room: {card.rooms.room_number} | Number:{" "}
+                      <span className="font-mono bg-gray-100 px-1 rounded">
+                        {card.card_number}
+                      </span>
+                    </p>
+                  </div>
+                  {/* No action buttons here, actions are performed from the main buttons */}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       );
     }
 
     // --- VIEW 2: ADD FLOW ---
     if (view === "add") {
-      // Step 2.1: Select a room
       if (!selectedRoom) {
         return (
           <div className="p-4 space-y-3">
@@ -214,7 +297,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
           </div>
         );
       }
-      // Step 2.2: Show the Add Card form for the selected room
       return (
         <div className="p-4">
           <button
@@ -229,7 +311,7 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
             onSuccess={() => {
               fetchBookingCards();
               setSelectedRoom(null);
-              setView("chooser"); // Go back to main menu on success
+              setView("chooser");
               alert("Card added successfully!");
             }}
           />
@@ -239,7 +321,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
 
     // --- VIEW 3: Edit List & Form ---
     if (view === "edit") {
-      // If a card has been selected, show the edit form
       if (cardToEdit) {
         return (
           <div className="p-4">
@@ -253,14 +334,14 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
               card={cardToEdit}
               onSuccess={() => {
                 fetchBookingCards();
-                setCardToEdit(null); // Go back to list on success
+                setCardToEdit(null);
+                setView("chooser"); // Return to main view on success
                 alert("Card updated successfully!");
               }}
             />
           </div>
         );
       }
-      // Otherwise, show the list of cards to choose from
       return (
         <div className="p-4 space-y-4">
           <button
@@ -269,45 +350,28 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to options
           </button>
-          {cards.length === 0 ? (
-            <p className="text-center text-gray-500 py-12">
-              No cards have been registered for this booking yet.
-            </p>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {cards.map((card) => (
-                <li
-                  key={card.id}
-                  className="py-3 flex justify-between items-center"
+          <ul className="divide-y divide-gray-200">
+            {cards.map((card) => (
+              <li
+                key={card.id}
+                className="py-3 flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-semibold">{card.card_name}</p>
+                  <p className="text-sm text-gray-500">
+                    Room: {card.rooms.room_number} | Number:{" "}
+                    <span className="font-mono">{card.card_number}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCardToEdit(card)}
+                  className="p-2 rounded-md hover:bg-gray-100"
                 >
-                  <div>
-                    <p className="font-semibold">
-                      {card.card_name}{" "}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          card.card_type === "guest"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {card.card_type}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Room: {card.rooms.room_number} | Number:{" "}
-                      <span className="font-mono">{card.card_number}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setCardToEdit(card)} // Set the card to be edited
-                    className="p-2 rounded-md hover:bg-gray-100"
-                  >
-                    <Edit className="w-5 h-5 text-yellow-600" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <Edit className="w-5 h-5 text-yellow-600" />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       );
     }
@@ -325,55 +389,45 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
             </button>
             <button
               onClick={handleDeleteAllGuestCards}
-              className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
+              disabled={isProcessing}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 disabled:bg-red-300 disabled:cursor-not-allowed"
             >
-              <Trash2 className="w-4 h-4" /> Delete All Guest Cards
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Delete All Guest Cards
             </button>
           </div>
-
-          {cards.length === 0 ? (
-            <p className="text-center text-gray-500 py-12">
-              No cards have been registered for this booking yet.
-            </p>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {cards.map((card) => (
-                <li
-                  key={card.id}
-                  className="py-3 flex justify-between items-center"
+          <ul className="divide-y divide-gray-200">
+            {cards.map((card) => (
+              <li
+                key={card.id}
+                className="py-3 flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-semibold">{card.card_name}</p>
+                  <p className="text-sm text-gray-500">
+                    Room: {card.rooms.room_number} | Number:{" "}
+                    <span className="font-mono">{card.card_number}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteCard(card)}
+                  disabled={isProcessing}
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <div>
-                    <p className="font-semibold">
-                      {card.card_name}{" "}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          card.card_type === "guest"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {card.card_type}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Room: {card.rooms.room_number} | Number:{" "}
-                      <span className="font-mono">{card.card_number}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteCard(card)}
-                    className="p-2 rounded-md hover:bg-gray-100"
-                  >
-                    <Trash2 className="w-5 h-5 text-red-600" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       );
     }
   };
+  // --- END OF RENDER CONTENT ---
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
