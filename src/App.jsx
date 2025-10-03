@@ -49,12 +49,6 @@ function App() {
   return (
     <BrowserRouter basename="/HotelManagementSystem">
       <Routes>
-        {/*
-          CHANGE 1: The root path "/" is now a conditional redirect.
-          - If no user, redirect to "/login". This makes login the default.
-          - If user is admin, redirect to "/admin".
-          - If user is a customer, redirect to "/home".
-        */}
         <Route
           path="/"
           element={
