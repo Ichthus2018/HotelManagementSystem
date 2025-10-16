@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  HashRouter,
+} from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import Loader from "./components/ui/common/loader";
 
@@ -51,7 +57,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter basename="/HotelManagementSystem">
+    <HashRouter>
       <Routes>
         <Route
           path="/"
@@ -144,7 +150,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
