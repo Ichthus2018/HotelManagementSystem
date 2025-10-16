@@ -5,12 +5,4 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: "/HotelManagementSystem/",
-  build: {
-    rollupOptions: {
-      input: {
-        main: "index.html",
-        fallback: "index.html", // ensures 404 fallback
-      },
-    },
-  },
 });
