@@ -38,6 +38,10 @@ import Items from "./pages/admin/Items";
 import Personnel from "./pages/admin/Personnel";
 import LockCardManager from "./pages/admin/LockCardManager";
 import Dashboard from "./pages/admin/Dashboard";
+import ReceivedItems from "./pages/admin/ReceivedItems";
+import InventoryOverview from "./pages/admin/InventoryOverview";
+import InventoryActions from "./pages/admin/InventoryActions";
+import InventoryHistory from "./components/Admin/Modals/InventoryHistory/InventoryHistory";
 
 function App() {
   const { user, loading } = useAuth();
@@ -102,6 +106,19 @@ function App() {
             <Route path="/admin/categories5" element={<Categories5 />} />
             <Route path="/admin/itemType" element={<ItemType />} />
             <Route path="/admin/item" element={<Items />} />
+            <Route path="/admin/receivedItems" element={<ReceivedItems />} />
+            <Route
+              path="/admin/inventoryActions"
+              element={<InventoryActions />}
+            />
+            <Route
+              path="/admin/inventoryOverview"
+              element={<InventoryOverview />}
+            />
+            <Route
+              path="/admin/inventoryHistory"
+              element={<InventoryHistory />}
+            />
             <Route path="/admin/personnel" element={<Personnel />} />
             <Route
               path="/admin/lockCardManager"
@@ -114,15 +131,10 @@ function App() {
             <Route path="/admin/guests" element={<Guests />} />
             <Route path="/admin/bookings" element={<Bookings />} />
             <Route path="/admin/dashboard" element={<Dashboard />} />
-            {/* A catch-all for any other /admin URL to redirect to the admin home */}
             <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
           </Route>
         </Route>
 
-        {/*
-          CHANGE 3: Customer routes are now on specific paths like "/home".
-          - The CustomerLayout now wraps these specific protected routes.
-        */}
         <Route element={<CustomerLayout />}>
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
@@ -130,10 +142,6 @@ function App() {
           </Route>
         </Route>
 
-        {/*
-          CHANGE 4: The catch-all route now redirects to the root "/".
-          The logic at "/" will then handle sending the user to the correct page.
-        */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

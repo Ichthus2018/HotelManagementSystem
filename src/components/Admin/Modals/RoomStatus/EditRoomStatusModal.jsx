@@ -102,7 +102,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                   className="text-lg font-semibold leading-6 text-gray-900"
                 >
                   Update Status for Room{" "}
-                  <span className="font-bold text-orange-600">
+                  <span className="font-bold text-blue-600">
                     {roomToEdit?.room_number}
                   </span>
                 </DialogTitle>
@@ -119,7 +119,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                       id="status"
                       value={newStatus}
                       onChange={(e) => setNewStatus(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 capitalize"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 capitalize"
                     >
                       {roomStatusOptions.map((opt) => (
                         <option key={opt} value={opt}>
@@ -135,7 +135,7 @@ const EditRoomStatusModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Updating..." : "Update Status"}
                     </button>

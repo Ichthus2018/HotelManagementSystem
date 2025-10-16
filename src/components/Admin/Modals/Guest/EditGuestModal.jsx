@@ -23,7 +23,7 @@ import { IoMdCloseCircle } from "react-icons/io";
 const EditGuestModal = ({ isOpen, onClose, onSuccess, guestData }) => {
   // Centralized styles for inputs and labels for consistency
   const inputStyles =
-    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500";
+    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const labelStyles = "block text-sm font-medium text-gray-700";
 
   // State for all guest fields
@@ -387,7 +387,7 @@ const EditGuestModal = ({ isOpen, onClose, onSuccess, guestData }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
                 >
                   <span className="sr-only">Close</span>
                   <IoMdCloseCircle className="h-7 w-7" />
@@ -703,7 +703,7 @@ const EditGuestModal = ({ isOpen, onClose, onSuccess, guestData }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}{" "}
                       {/* <-- UI TEXT CHANGE */}

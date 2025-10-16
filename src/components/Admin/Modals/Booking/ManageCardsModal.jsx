@@ -1,7 +1,12 @@
 // src/components/.../ManageCardsModal.js
 
 import { useState, useEffect, Fragment } from "react";
-import { Dialog, Transition } from "@headlessui/react";
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from "@headlessui/react";
 import supabase from "../../../../services/supabaseClient";
 import axios from "axios"; // Import axios
 import { API_BASE_URL } from "../../../../services/api"; // Your API base URL
@@ -66,7 +71,7 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     onClose();
   };
 
-  // --- NEW: Refactored Delete Handler ---
+  // --- Delete Handler ---
   const handleDeleteCard = async (cardToDelete) => {
     if (
       !window.confirm(
@@ -84,9 +89,10 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
 
     setIsProcessing(true);
     try {
-      // 1. Delete from TTLock API first
+      // 1. Delete from TTLock API first via Supabase Edge Function
+      // *** CHANGED: Added /backendLock to the URL path ***
       await axios.delete(
-        `${API_BASE_URL}/locks/${cardToDelete.rooms.lock_id}/cards/${cardToDelete.card_id_on_lock}`
+        `${API_BASE_URL}/backendLock/locks/${cardToDelete.rooms.lock_id}/cards/${cardToDelete.card_id_on_lock}`
       );
 
       // 2. If successful, delete from Supabase DB
@@ -108,7 +114,7 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     }
   };
 
-  // --- NEW: Refactored Delete All Handler ---
+  // --- Delete All Handler ---
   const handleDeleteAllGuestCards = async () => {
     const guestCards = cards.filter((c) => c.card_type === "guest");
     if (guestCards.length === 0) {
@@ -132,8 +138,9 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
           );
           return Promise.resolve(); // Resolve immediately if info is missing
         }
+        // *** CHANGED: Added /backendLock to the URL path ***
         return axios.delete(
-          `${API_BASE_URL}/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`
+          `${API_BASE_URL}/backendLock/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`
         );
       });
 
@@ -183,9 +190,8 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
     );
   };
 
-  // --- START OF RENDER CONTENT ---
+  // --- RENDER CONTENT (No changes below this line) ---
   const renderContent = () => {
-    // Top-level loading and error states
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-48">
@@ -197,11 +203,9 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       return <div className="text-center p-8 text-red-500">{error}</div>;
     }
 
-    // --- VIEW 1: Chooser (Main View with Card List) ---
     if (view === "chooser") {
       return (
         <div className="p-6">
-          {/* Action Buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => setView("add")}
@@ -231,13 +235,9 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
               </span>
             </button>
           </div>
-
-          {/* Divider and Title */}
           <div className="mt-6 pt-4 border-t">
             <h4 className="font-semibold text-gray-800">Registered Cards</h4>
           </div>
-
-          {/* Card List */}
           {cards.length === 0 ? (
             <div className="text-center text-gray-500 py-12 flex flex-col items-center">
               <Info className="w-8 h-8 text-gray-400 mb-2" />
@@ -259,7 +259,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
                       </span>
                     </p>
                   </div>
-                  {/* No action buttons here, actions are performed from the main buttons */}
                 </li>
               ))}
             </ul>
@@ -268,7 +267,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       );
     }
 
-    // --- VIEW 2: ADD FLOW ---
     if (view === "add") {
       if (!selectedRoom) {
         return (
@@ -319,7 +317,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       );
     }
 
-    // --- VIEW 3: Edit List & Form ---
     if (view === "edit") {
       if (cardToEdit) {
         return (
@@ -335,7 +332,7 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
               onSuccess={() => {
                 fetchBookingCards();
                 setCardToEdit(null);
-                setView("chooser"); // Return to main view on success
+                setView("chooser");
                 alert("Card updated successfully!");
               }}
             />
@@ -376,7 +373,6 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       );
     }
 
-    // --- VIEW 4: Delete List ---
     if (view === "delete") {
       return (
         <div className="p-4 space-y-4">
@@ -427,12 +423,11 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
       );
     }
   };
-  // --- END OF RENDER CONTENT ---
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        <Transition.Child
+        <TransitionChild
           as={Fragment}
           enter="ease-out duration-300"
           enterFrom="opacity-0"
@@ -442,10 +437,10 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
           leaveTo="opacity-0"
         >
           <div className="fixed inset-0 bg-black/60" />
-        </Transition.Child>
+        </TransitionChild>
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
+            <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0 scale-95"
@@ -454,11 +449,11 @@ const ManageCardsModal = ({ isOpen, onClose, booking }) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+              <DialogPanel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
                 {renderHeader()}
                 <div className="min-h-[200px]">{renderContent()}</div>
-              </Dialog.Panel>
-            </Transition.Child>
+              </DialogPanel>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>

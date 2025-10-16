@@ -50,7 +50,7 @@ const Category2List = ({ categories, onEdit, onDelete }) => {
                 <div className="flex space-x-2">
                   <button
                     onClick={() => onEdit(category)}
-                    className="text-orange-600 hover:text-orange-900"
+                    className="text-blue-600 hover:text-blue-900"
                   >
                     <FaEdit className="w-4 h-4" />
                   </button>

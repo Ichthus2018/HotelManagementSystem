@@ -110,7 +110,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
@@ -137,7 +137,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -153,7 +153,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                       rows="3"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -169,7 +169,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                         id="chargeType"
                         value={chargeType}
                         onChange={(e) => setChargeType(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="fixed">Fixed Amount</option>
                         <option value="percentage">Percentage</option>
@@ -193,7 +193,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                           max={chargeType === "percentage" ? "100" : undefined}
                           value={value}
                           onChange={(e) => setValue(e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         />
                       </div>
@@ -207,7 +207,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                         id="isVatable"
                         checked={isVatable}
                         onChange={(e) => setIsVatable(e.target.checked)}
-                        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label
                         htmlFor="isVatable"
@@ -222,7 +222,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                         id="isDefault"
                         checked={isDefault}
                         onChange={(e) => setIsDefault(e.target.checked)}
-                        className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label
                         htmlFor="isDefault"
@@ -238,7 +238,7 @@ const AddChargeItemModal = ({ isOpen, onClose, onSuccess }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Adding..." : "Add Charge Item"}
                     </button>

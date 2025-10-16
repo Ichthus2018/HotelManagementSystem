@@ -117,7 +117,7 @@ const RoomTypeDetails = ({ roomType, onBack, onEdit, onDelete }) => {
 // Helper components for cleaner JSX
 const InfoCard = ({ icon: Icon, title, value }) => (
   <div className="p-4 bg-gray-50 rounded-lg flex items-center gap-4">
-    <Icon className="h-8 w-8 text-orange-500 flex-shrink-0" />
+    <Icon className="h-8 w-8 text-blue-500 flex-shrink-0" />
     <div>
       <p className="text-xl font-semibold">{value || "N/A"}</p>
       <p className="text-sm text-gray-500">{title}</p>

@@ -196,6 +196,15 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+            </ul>
+          </li>
+          <li>
+            {sidebarOpen && (
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Inventory
+              </h2>
+            )}
+            <ul className="space-y-2">
               <NavItem
                 to="/admin/item"
                 icon={<FaCubes size={20} />} // Item/Type grouping
@@ -203,9 +212,30 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+              <NavItem
+                to="/admin/receivedItems"
+                icon={<FaCubes size={20} />} // Item/Type grouping
+                label="Received Items"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+
+              <NavItem
+                to="/admin/inventoryOverview"
+                icon={<FaCubes size={20} />} // Item/Type grouping
+                label="Inventory Overview"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/inventoryActions"
+                icon={<FaCubes size={20} />}
+                label="inventory Actions"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
             </ul>
           </li>
-
           {/* Connections Section */}
           <li>
             {sidebarOpen && (
@@ -228,7 +258,6 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
-              {/* ... other NavItems ... */}
               <NavItem
                 to="/admin/doorLocks"
                 icon={<FaDoorOpen size={20} />}
@@ -306,13 +335,6 @@ export default function Sidebar({
             )}
             <ul className="space-y-2">
               <NavItem
-                to="/admin/bookings"
-                icon={<FaClipboardList size={20} />}
-                label="Bookings"
-                sidebarOpen={sidebarOpen}
-                closeSidebar={() => setSidebarOpen(false)}
-              />
-              <NavItem
                 to="/admin/guests"
                 icon={<FaUsers size={20} />}
                 label="Guests"
@@ -330,6 +352,22 @@ export default function Sidebar({
                 to="/admin/chargeItems"
                 icon={<FaMoneyBill size={20} />}
                 label="Charge Items"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+            </ul>
+          </li>
+          <li>
+            {sidebarOpen && (
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Transactions
+              </h2>
+            )}
+            <ul className="space-y-2">
+              <NavItem
+                to="/admin/bookings"
+                icon={<FaClipboardList size={20} />}
+                label="Bookings"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />

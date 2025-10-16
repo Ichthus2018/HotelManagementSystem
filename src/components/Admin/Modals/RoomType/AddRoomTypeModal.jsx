@@ -339,7 +339,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                               onChange={(e) =>
                                 setUseWeekendRate(e.target.checked)
                               }
-                              className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-blue-600"
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                             />
                           </div>
                           <div className="ml-3 text-sm leading-6">
@@ -558,7 +558,7 @@ const AddRoomTypeModal = ({ isOpen, onClose, onSuccess }) => {
                           disabled={
                             !validatePage() || isSubmitting || isUploading
                           }
-                          className=" disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className=" disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           Next
                         </button>

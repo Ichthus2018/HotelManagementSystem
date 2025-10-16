@@ -206,7 +206,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         id="roomNumber"
                         value={roomNumber}
                         onChange={(e) => setRoomNumber(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
                     </div>
@@ -222,7 +222,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         id="roomType"
                         value={selectedRoomTypeId}
                         onChange={(e) => setSelectedRoomTypeId(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       >
                         <option value="" disabled>
@@ -248,7 +248,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         id="lock"
                         value={selectedLockId}
                         onChange={(e) => setSelectedLockId(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">None</option>
                         {availableLocks.map((lock) => (
@@ -271,7 +271,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         id="location"
                         value={selectedLocationId}
                         onChange={(e) => setSelectedLocationId(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">None</option>
                         {locations.map((loc) => (
@@ -293,7 +293,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         id="status"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 capitalize"
+                        className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 capitalize"
                       >
                         {roomStatusOptions.map((opt) => (
                           <option key={opt} value={opt}>
@@ -309,7 +309,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                        className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                       >
                         {isSubmitting ? "Saving..." : "Save Changes"}
                       </button>

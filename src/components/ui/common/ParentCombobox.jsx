@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useRef, useEffect } from "react";
 import {
   Combobox,
   ComboboxButton,
@@ -19,13 +19,22 @@ const ParentCombobox = ({
   codeKey,
 }) => {
   const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const [width, setWidth] = useState("auto");
+
+  // Dynamically match dropdown width to input
+  useEffect(() => {
+    if (inputRef.current) {
+      setWidth(`${inputRef.current.offsetWidth}px`);
+    }
+  }, [inputRef.current]);
 
   const filteredData =
     query === ""
       ? data
-      : data.filter((item) => {
-          return item[nameKey].toLowerCase().includes(query.toLowerCase());
-        });
+      : data.filter((item) =>
+          item[nameKey].toLowerCase().includes(query.toLowerCase())
+        );
 
   return (
     <Combobox value={selected} onChange={setSelected}>
@@ -33,11 +42,12 @@ const ParentCombobox = ({
         <label className="block text-sm font-medium text-gray-700">
           {label}
         </label>
-        <div className="relative mt-1">
+
+        <div className="relative mt-1" ref={inputRef}>
           <ComboboxInput
-            className="w-full rounded-lg border border-gray-300 p-2 pr-10 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-3 pr-10 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400/60"
             displayValue={(item) => (item ? item[nameKey] : "")}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
           />
           <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -47,6 +57,7 @@ const ParentCombobox = ({
             />
           </ComboboxButton>
         </div>
+
         <Transition
           as={Fragment}
           leave="transition ease-in duration-100"
@@ -54,43 +65,58 @@ const ParentCombobox = ({
           leaveTo="opacity-0"
           afterLeave={() => setQuery("")}
         >
-          <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
+          <ComboboxOptions
+            className="mt-1 max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white py-2 text-sm shadow-lg ring-1 ring-black/5 focus:outline-none z-[9999]"
+            style={{
+              position: "fixed",
+              width: width,
+            }}
+          >
             {filteredData.length === 0 && query !== "" ? (
-              <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+              <div className="relative cursor-default select-none py-3 px-4 text-gray-500 text-center">
                 Nothing found.
               </div>
             ) : (
               filteredData.map((item) => (
                 <ComboboxOption
                   key={item.id}
+                  value={item}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                      active ? "bg-orange-600 text-white" : "text-gray-900"
+                    `relative cursor-pointer select-none py-3 pl-12 pr-4 ${
+                      active
+                        ? "bg-blue-50 text-blue-900"
+                        : "text-gray-800 hover:bg-gray-50"
                     }`
                   }
-                  value={item}
                 >
                   {({ selected, active }) => (
                     <>
-                      <span className="block truncate">
-                        {item[nameKey]}
-                        <p
+                      <div className="flex flex-col leading-tight">
+                        <span
+                          className={`font-medium ${
+                            active ? "text-blue-900" : "text-gray-900"
+                          }`}
+                        >
+                          {item[nameKey]}
+                        </span>
+                        <span
                           className={`text-xs ${
-                            active ? "text-orange-100" : "text-gray-500"
+                            active ? "text-blue-600" : "text-gray-500"
                           }`}
                         >
                           {item[codeKey]}
-                        </p>
-                      </span>
-                      {selected ? (
+                        </span>
+                      </div>
+
+                      {selected && (
                         <span
                           className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
-                            active ? "text-white" : "text-orange-600"
+                            active ? "text-blue-600" : "text-blue-500"
                           }`}
                         >
                           <HiCheck className="h-5 w-5" aria-hidden="true" />
                         </span>
-                      ) : null}
+                      )}
                     </>
                   )}
                 </ComboboxOption>

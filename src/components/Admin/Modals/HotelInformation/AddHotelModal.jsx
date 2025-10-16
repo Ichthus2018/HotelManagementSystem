@@ -25,7 +25,7 @@ if (typeof window !== "undefined") {
 
 const AddHotelModal = ({ isOpen, onClose, onSuccess }) => {
   const inputStyles =
-    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500";
+    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const labelStyles = "block text-sm font-medium text-gray-700";
 
   const countryOptions = useMemo(() => {
@@ -327,7 +327,7 @@ const AddHotelModal = ({ isOpen, onClose, onSuccess }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
                 >
                   <IoMdCloseCircle className="h-7 w-7" />
                 </button>
@@ -779,7 +779,7 @@ const AddHotelModal = ({ isOpen, onClose, onSuccess }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 disabled:bg-orange-300 transition-colors"
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
                     >
                       {isSubmitting ? "Adding..." : "Add Hotel"}
                     </button>

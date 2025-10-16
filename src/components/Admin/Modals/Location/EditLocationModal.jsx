@@ -86,7 +86,7 @@ const EditLocationModal = ({ isOpen, onClose, onSuccess, location }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
@@ -110,7 +110,7 @@ const EditLocationModal = ({ isOpen, onClose, onSuccess, location }) => {
                       id="edit-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -126,7 +126,7 @@ const EditLocationModal = ({ isOpen, onClose, onSuccess, location }) => {
                       rows="3"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   {error && <p className="text-sm text-red-600">{error}</p>}
@@ -134,7 +134,7 @@ const EditLocationModal = ({ isOpen, onClose, onSuccess, location }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>

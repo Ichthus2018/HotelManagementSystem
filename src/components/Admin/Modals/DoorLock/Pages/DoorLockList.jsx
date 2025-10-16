@@ -36,7 +36,7 @@ const DoorLockList = ({ doorLocks, onDelete, onRename, onViewDetails }) => {
           <div
             key={lock.id}
             onClick={() => onViewDetails(lock)} // <-- Entire row is clickable
-            className="group p-4 sm:p-6 flex justify-between items-center hover:bg-orange-50/75 transition-colors duration-150 cursor-pointer"
+            className="group p-4 sm:p-6 flex justify-between items-center hover:bg-blue-50/75 transition-colors duration-150 cursor-pointer"
           >
             <div className="flex items-center gap-4 flex-1 min-w-0">
               {/* Status Icon (imitating GatewayList) */}

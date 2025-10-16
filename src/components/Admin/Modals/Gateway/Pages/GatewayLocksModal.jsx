@@ -22,7 +22,9 @@ const GatewayLocksModal = ({ isOpen, onClose, gateway }) => {
       setLocks([]); // Clear previous locks
 
       try {
-        const response = await fetch(`${API_BASE_URL}/${gateway.id}/locks`);
+        const response = await fetch(
+          `${API_BASE_URL}/gateways/${gateway.id}/locks`
+        );
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
@@ -79,7 +81,7 @@ const GatewayLocksModal = ({ isOpen, onClose, gateway }) => {
             className="flex items-center justify-between gap-4 py-4"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-orange-100 text-orange-600">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
                 <LockClosedIcon className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
@@ -133,7 +135,7 @@ const GatewayLocksModal = ({ isOpen, onClose, gateway }) => {
                 >
                   <span>
                     Locks on{" "}
-                    <span className="text-orange-600">{gateway?.name}</span>
+                    <span className="text-blue-600">{gateway?.name}</span>
                   </span>
                   <button
                     type="button"

@@ -20,7 +20,7 @@ const PersonnelList = ({ personnel, onEdit, onDelete, onChangePassword }) => {
     // Use the hash to pick from a wide range of Tailwind color combinations
     const colorOptions = [
       "bg-red-100 text-red-800",
-      "bg-orange-100 text-orange-800",
+      "bg-blue-100 text-blue-800",
       "bg-amber-100 text-amber-800",
       "bg-yellow-100 text-yellow-800",
       "bg-lime-100 text-lime-800",

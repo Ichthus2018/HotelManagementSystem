@@ -43,15 +43,23 @@ const Items = () => {
     clearSearch,
   } = useSupabaseQuery({
     tableName: "items",
-    // This query is crucial. It fetches the related names along with the item data.
     selectQuery: `
-      id, item_code, item_name, batch, status, created_at,
+      id, item_code, item_name, batch, status, created_at, item_class,
+      stock_available, stock_dirty, stock_in_laundry, stock_in_use, stock_under_maintenance,
       item_type (id, item_type_name),
+      item_lifecycle_types (id, lifecycle_name),
       categories_1 (id, category_1_name),
       categories_2 (id, category_2_name),
       categories_3 (id, category_3_name),
       categories_4 (id, category_4_name),
-      categories_5 (id, category_5_name)
+      categories_5 (id, category_5_name),
+      boms (
+        id,
+        bom_components (
+          quantity_required,
+          component_item:items (id, item_name, item_code)
+        )
+      )
     `,
     searchColumn: "item_name",
     initialPageSize: 10,
@@ -144,6 +152,42 @@ const Items = () => {
           buttonText="Add New Item"
           onButtonClick={() => setIsAddModalOpen(true)}
         />
+        {/* Item Type Info Box */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          {/* Cyclical */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 shadow-sm hover:shadow-md transition duration-200">
+            <h3 className="font-semibold text-blue-700 flex items-center gap-2">
+              🧺 Cyclical
+            </h3>
+            <p className="text-gray-600 text-xs mt-1 leading-relaxed">
+              Reusable items that <b>cycle between clean, dirty, and laundry</b>{" "}
+              states. (e.g., Towel)
+            </p>
+          </div>
+
+          {/* Tracked Asset */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-green-50 to-green-100 border border-green-200 shadow-sm hover:shadow-md transition duration-200">
+            <h3 className="font-semibold text-green-700 flex items-center gap-2">
+              📺 Tracked Asset
+            </h3>
+            <p className="text-gray-600 text-xs mt-1 leading-relaxed">
+              Long-term items that are <b>assigned, moved, or repaired</b> but
+              not consumed. (e.g., TV)
+            </p>
+          </div>
+
+          {/* Consumable */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 shadow-sm hover:shadow-md transition duration-200">
+            <h3 className="font-semibold text-yellow-700 flex items-center gap-2">
+              🧴 Consumable
+            </h3>
+            <p className="text-gray-600 text-xs mt-1 leading-relaxed">
+              Items that are <b>used up once</b> and then removed from
+              inventory. (e.g., Soap)
+            </p>
+          </div>
+        </div>
+
         <SearchInput
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}

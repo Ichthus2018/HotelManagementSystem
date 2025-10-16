@@ -23,7 +23,7 @@ import TimeSelector from "../../../ui/common/TimeSelector";
 
 const EditFacilityModal = ({ isOpen, onClose, onSuccess, facilityData }) => {
   const inputStyles =
-    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500";
+    "mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const labelStyles = "block text-sm font-medium text-gray-700";
 
   // Form states
@@ -212,7 +212,7 @@ const EditFacilityModal = ({ isOpen, onClose, onSuccess, facilityData }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
                 >
                   <span className="sr-only">Close</span>
                   <IoMdCloseCircle className="h-7 w-7" />
@@ -400,7 +400,7 @@ const EditFacilityModal = ({ isOpen, onClose, onSuccess, facilityData }) => {
                             onChange={(e) =>
                               updateInfoField(index, e.target.value)
                             }
-                            className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Enter a feature (e.g., Kids' pool included)"
                           />
                           <button
@@ -430,7 +430,7 @@ const EditFacilityModal = ({ isOpen, onClose, onSuccess, facilityData }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>

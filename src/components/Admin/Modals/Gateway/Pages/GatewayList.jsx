@@ -14,7 +14,7 @@ const GatewayList = ({ gateways, onDelete, onViewLocks, onRename }) => {
         <div
           key={gateway.id}
           onClick={() => onViewLocks(gateway)}
-          className="group p-4 sm:p-6 flex justify-between items-center hover:bg-orange-50/75 transition-colors duration-150 cursor-pointer"
+          className="group p-4 sm:p-6 flex justify-between items-center hover:bg-blue-50/75 transition-colors duration-150 cursor-pointer"
         >
           <div className="flex items-center gap-4 flex-1 min-w-0">
             {/* Status Icon */}
@@ -80,7 +80,7 @@ const GatewayList = ({ gateways, onDelete, onViewLocks, onRename }) => {
             >
               <TrashIcon className="h-5 w-5" />
             </button>
-            <ChevronRightIcon className="h-6 w-6 text-gray-400 group-hover:text-orange-600 transition-colors" />
+            <ChevronRightIcon className="h-6 w-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
           </div>
         </div>
       ))}

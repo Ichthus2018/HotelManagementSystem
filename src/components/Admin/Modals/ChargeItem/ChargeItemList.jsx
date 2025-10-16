@@ -42,14 +42,14 @@ const ChargeItemList = ({ chargeItems, onEdit, onDelete }) => {
                 </span>
               )}
             </p>
-            <p className="mt-2 text-lg font-medium text-orange-600">
+            <p className="mt-2 text-lg font-medium text-blue-600">
               {formatValue(item)}
             </p>
           </div>
           <div className="flex-shrink-0 flex items-center space-x-2">
             <button
               onClick={() => onEdit(item)}
-              className="p-2 text-gray-500 rounded-full hover:bg-gray-200 hover:text-orange-500 transition-colors"
+              className="p-2 text-gray-500 rounded-full hover:bg-gray-200 hover:text-blue-500 transition-colors"
               title="Edit Charge Item"
             >
               <PencilSquareIcon className="h-5 w-5" />

@@ -91,7 +91,7 @@ const EditCategory3Modal = ({ isOpen, onClose, onSuccess, category }) => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
@@ -115,7 +115,7 @@ const EditCategory3Modal = ({ isOpen, onClose, onSuccess, category }) => {
                       id="edit-category3Code"
                       value={category3Code}
                       onChange={(e) => setCategory3Code(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -131,7 +131,7 @@ const EditCategory3Modal = ({ isOpen, onClose, onSuccess, category }) => {
                       id="edit-category3Name"
                       value={category3Name}
                       onChange={(e) => setCategory3Name(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -141,7 +141,7 @@ const EditCategory3Modal = ({ isOpen, onClose, onSuccess, category }) => {
                         type="checkbox"
                         checked={status}
                         onChange={(e) => setStatus(e.target.checked)}
-                        className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="ml-2 text-sm text-gray-700">
                         Active Status
@@ -153,7 +153,7 @@ const EditCategory3Modal = ({ isOpen, onClose, onSuccess, category }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>

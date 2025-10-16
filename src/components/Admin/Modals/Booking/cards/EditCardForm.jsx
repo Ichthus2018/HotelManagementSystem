@@ -52,9 +52,13 @@ const EditCardForm = ({ card, onSuccess }) => {
       const apiPayload = {
         startDate: startTimestamp,
         endDate: endTimestamp,
+        // The TTLock API for update also allows changing the name
+        cardName: card.card_name,
       };
+
+      // *** CHANGED: Updated the endpoint to match the Supabase Edge Function path ***
       await axios.put(
-        `${API_BASE_URL}/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`,
+        `${API_BASE_URL}/backendLock/locks/${card.rooms.lock_id}/cards/${card.card_id_on_lock}`,
         apiPayload
       );
 

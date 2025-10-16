@@ -70,8 +70,10 @@ const AddCardForm = ({ room, booking, onSuccess }) => {
         startDate: startTimestamp,
         endDate: endTimestamp,
       };
+
+      // *** CHANGED: Updated the endpoint to match the Supabase Edge Function path ***
       const response = await axios.post(
-        `${API_BASE_URL}/locks/${room.rooms.lock_id}/cards`,
+        `${API_BASE_URL}/backendLock/locks/${room.rooms.lock_id}/cards`,
         apiPayload
       );
 
@@ -84,7 +86,8 @@ const AddCardForm = ({ room, booking, onSuccess }) => {
         booking_id: booking.id,
         room_id: room.rooms.id,
         card_name: cardName,
-        card_number: cardNumber, // <-- THE FIX IS HERE
+        // The card number from the API response is the reversed/correct one for display
+        card_number: response.data.cardNumber,
         card_type: cardType,
         valid_from: new Date(startTimestamp).toISOString(),
         valid_until: new Date(endTimestamp).toISOString(),

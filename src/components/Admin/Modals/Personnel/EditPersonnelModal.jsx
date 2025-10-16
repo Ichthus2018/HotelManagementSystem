@@ -7,7 +7,10 @@ import {
   TransitionChild,
 } from "@headlessui/react";
 import supabase from "../../../../services/supabaseClient";
+
+// --- ICONS ---
 import { IoIosCloseCircleOutline } from "react-icons/io";
+import { FaCrown } from "react-icons/fa";
 
 const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
   const [email, setEmail] = useState("");
@@ -16,13 +19,12 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Populate form fields when the personnel data is passed in
   useEffect(() => {
     if (personnel) {
       setEmail(personnel.auth_users?.email || personnel.email || "");
       setRole(personnel.role || "staff");
       setAdmin(personnel.admin || false);
-      setError(""); // Clear previous errors
+      setError("");
     }
   }, [personnel, isOpen]);
 
@@ -36,12 +38,9 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
       setError("Email is required.");
       return;
     }
-
     setIsSubmitting(true);
     setError("");
-
     try {
-      // Update the email in auth.users if it's different
       if (email !== (personnel.auth_users?.email || personnel.email)) {
         const { error: emailError } = await supabase.auth.admin.updateUserById(
           personnel.id,
@@ -49,18 +48,14 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
         );
         if (emailError) throw emailError;
       }
-
-      // Update the role and admin status in public.users
       const { error: updateError } = await supabase
         .from("users")
         .update({
           role: role,
-          admin: admin || role === "admin", // Ensure admin is true if role is admin
+          admin: admin,
         })
         .eq("id", personnel.id);
-
       if (updateError) throw updateError;
-
       onSuccess();
       handleClose();
     } catch (err) {
@@ -71,7 +66,6 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
     }
   };
 
-  // Handle role change - automatically set admin status if role is admin
   const handleRoleChange = (newRole) => {
     setRole(newRole);
     if (newRole === "admin") {
@@ -106,51 +100,47 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <DialogPanel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 sm:p-8 text-left align-middle shadow-xl transition-all">
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
+                  className="absolute top-4 right-4 text-3xl text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
                   aria-label="Close"
                 >
                   <IoIosCloseCircleOutline />
                 </button>
                 <DialogTitle
                   as="h3"
-                  className="text-lg font-semibold leading-6 text-gray-900"
+                  className="text-xl font-semibold leading-6 text-gray-900"
                 >
                   Edit Personnel
                 </DialogTitle>
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                  {/* Email Input */}
                   <div>
-                    <label
-                      htmlFor="edit-email"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Email*
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Email Address*
                     </label>
                     <input
                       type="email"
-                      id="edit-email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
+                      disabled={isSubmitting}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 text-sm"
                     />
                   </div>
 
+                  {/* Role Dropdown */}
                   <div>
-                    <label
-                      htmlFor="edit-role"
-                      className="block text-sm font-medium text-gray-700"
-                    >
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
                       Role*
                     </label>
                     <select
-                      id="edit-role"
                       value={role}
                       onChange={(e) => handleRoleChange(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      disabled={isSubmitting}
+                      className="w-full py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 text-sm"
                     >
                       <option value="staff">Staff</option>
                       <option value="manager">Manager</option>
@@ -158,42 +148,71 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
                     </select>
                   </div>
 
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="edit-admin"
-                      checked={admin}
-                      onChange={(e) => setAdmin(e.target.checked)}
-                      disabled={role === "admin"} // Disable if role is admin since it's automatically true
-                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="edit-admin"
-                      className="ml-2 block text-sm text-gray-700"
+                  {/* --- MODIFIED SECTION START --- */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center">
+                      <FaCrown className="h-5 w-5 text-yellow-500 mr-3" />
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700">
+                          Account Access
+                        </label>
+                        <p className="text-xs">
+                          {admin ? (
+                            <span className="font-bold text-green-600">
+                              Has system access
+                            </span>
+                          ) : (
+                            <span className="font-bold text-red-600">
+                              Access disabled
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAdmin(!admin)}
+                      disabled={isSubmitting || role === "admin"}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        admin ? "bg-blue-600" : "bg-gray-300"
+                      } ${role === "admin" ? "cursor-not-allowed" : ""}`}
                     >
-                      Administrator privileges
-                      {role === "admin" && (
-                        <span className="text-xs text-gray-500 ml-1">
-                          (automatically enabled for Admin role)
-                        </span>
-                      )}
-                    </label>
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          admin ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {/* --- MODIFIED SECTION END --- */}
+
+                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
+                    <strong>Note:</strong>{" "}
+                    {admin && role === "admin"
+                      ? "✓ Admin user — has full access."
+                      : admin && role !== "admin"
+                      ? `⚠ Access ON but user role is '${role}'.`
+                      : !admin && role === "admin"
+                      ? "⚠ Admin role but access is OFF. (Access is required for Admin role)"
+                      : "Regular user — access is OFF."}
                   </div>
 
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      <strong>Note:</strong> To change the user's password, use
-                      the "Change Password" option from the personnel list.
-                    </p>
-                  </div>
+                  {error && (
+                    <p className="text-sm text-red-600 font-medium">{error}</p>
+                  )}
 
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-8 flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      Cancel
+                    </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>

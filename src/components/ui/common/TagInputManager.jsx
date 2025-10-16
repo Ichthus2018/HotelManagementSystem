@@ -71,7 +71,7 @@ const TagInputManager = ({
             value={customItem}
             onChange={(e) => setCustomItem(e.target.value)}
             placeholder={placeholder}
-            className="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+            className="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();

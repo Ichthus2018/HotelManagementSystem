@@ -40,8 +40,10 @@ const EditCardModal = ({ isOpen, onClose, onSuccess, card }) => {
 
     try {
       const payload = { startDate: startTimestamp, endDate: endTimestamp };
+
+      // *** CHANGED: Updated the endpoint to match the Supabase Edge Function path ***
       const response = await axios.put(
-        `${API_BASE_URL}/locks/${card.lockId}/cards/${card.cardId}`,
+        `${API_BASE_URL}/backendLock/locks/${card.lockId}/cards/${card.cardId}`,
         payload
       );
 
@@ -121,7 +123,7 @@ const EditCardModal = ({ isOpen, onClose, onSuccess, card }) => {
                         id="edit-startDate"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       />
                     </div>
                     <div>
@@ -136,7 +138,7 @@ const EditCardModal = ({ isOpen, onClose, onSuccess, card }) => {
                         id="edit-endDate"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       />
                     </div>
                   </div>
@@ -158,7 +160,7 @@ const EditCardModal = ({ isOpen, onClose, onSuccess, card }) => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 disabled:bg-orange-300"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:bg-blue-300"
                     >
                       {isSubmitting ? "Saving..." : "Save Changes"}
                     </button>

@@ -15,13 +15,13 @@ import DeleteConfirmationModal from "../../components/ui/common/DeleteConfirmati
 import GatewayLocksModal from "../../components/Admin/Modals/Gateway/Pages/GatewayLocksModal";
 // --- 1. Import the new modal ---
 import RenameGatewayModal from "../../components/Admin/Modals/Gateway/Pages/RenameGatewayModal";
+import { API_BASE_URL } from "../../services/api";
 
 // Lazy-loaded View Component
 const GatewayList = lazy(() =>
   import("../../components/Admin/Modals/Gateway/Pages/GatewayList")
 );
 
-const API_URL = "http://localhost:5000/api/gateways";
 const PAGE_SIZE = 10;
 
 const Gateways = () => {
@@ -51,7 +51,7 @@ const Gateways = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(API_URL);
+        const response = await fetch(`${API_BASE_URL}/gateways`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -125,7 +125,7 @@ const Gateways = () => {
     setIsProcessing(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/gateways/${selectedGateway.id}`,
+        `${API_BASE_URL}/gateways/${selectedGateway.id}`,
         { method: "DELETE" }
       );
       if (!response.ok) {
@@ -152,17 +152,14 @@ const Gateways = () => {
 
     try {
       // This fetch call should point to your backend, which then calls the TTLock API
-      const response = await fetch(
-        `http://localhost:5000/api/gateways/rename`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            gatewayId: selectedGateway.id,
-            gatewayName: newName,
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/gateways/rename`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gatewayId: selectedGateway.id,
+          gatewayName: newName,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -234,7 +231,7 @@ const Gateways = () => {
           title="Manage Gateways"
           description="View, add, or remove TTLock gateways from your account."
           buttonText="Add New Gateway"
-          onButtonClick={() => setIsAddModalOpen(true)}
+          // onButtonClick={() => setIsAddModalOpen(true)}
         />
         <SearchInput
           searchTerm={searchTerm}
@@ -256,11 +253,11 @@ const Gateways = () => {
         </div>
       </div>
 
-      <AddGatewayModal
+      {/* <AddGatewayModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleAddSuccess}
-      />
+      /> */}
       {gatewayForLocks && (
         <GatewayLocksModal
           isOpen={isLocksModalOpen}
