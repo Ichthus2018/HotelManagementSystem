@@ -38,6 +38,7 @@ import { GiStatic } from "react-icons/gi";
 import { FcStatistics } from "react-icons/fc";
 
 // Reusable Nav Item Component - It's self-contained and perfect to live here.
+
 const NavItem = ({ to, icon, label, sidebarOpen, closeSidebar }) => (
   <li>
     <NavLink
@@ -46,11 +47,16 @@ const NavItem = ({ to, icon, label, sidebarOpen, closeSidebar }) => (
         if (window.innerWidth < 768) closeSidebar(); // Close only on mobile
       }}
       className={({ isActive }) =>
-        `flex items-center px-4 py-3 transition-all duration-300 rounded-lg group ${
+        `
+        flex items-center justify-center md:justify-start
+        ${sidebarOpen ? "px-4" : "px-2"} py-3
+        transition-all duration-300 rounded-lg group 
+        ${
           isActive
             ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-md"
             : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-        }`
+        }
+      `
       }
     >
       <div className="group-hover:text-gray-800">{icon}</div>
@@ -181,18 +187,25 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
-
               <NavItem
-                to="/admin/roomStatus"
-                icon={<FaClipboardList size={20} />}
-                label="Room Status"
+                to="/admin/permissions"
+                icon={<FaKeycdn size={20} />} // Example icon
+                label="Role Permissions"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+
               <NavItem
                 to="/admin/roomLocations"
                 icon={<FaMapMarkedAlt size={20} />}
                 label="Room Locations"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/roomStatus"
+                icon={<FaClipboardList size={20} />}
+                label="Room Status"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
@@ -231,6 +244,29 @@ export default function Sidebar({
                 to="/admin/inventoryActions"
                 icon={<FaCubes size={20} />}
                 label="inventory Actions"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+            </ul>
+          </li>
+          <li>
+            {sidebarOpen && (
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                HouseKeeping
+              </h2>
+            )}
+            <ul className="space-y-2">
+              <NavItem
+                to="/admin/inspectionWorkflowSettings"
+                icon={<FaCubes size={20} />} // Item/Type grouping
+                label="Company Policies"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/roomAssignments"
+                icon={<FaCubes size={20} />}
+                label="Room Assignments"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />

@@ -14,13 +14,7 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
-import {
-  FaBars,
-  FaTimes,
-  FaUserCircle,
-  FaBook,
-  FaSignOutAlt,
-} from "react-icons/fa";
+import { FaBars, FaTimes, FaBook, FaSignOutAlt } from "react-icons/fa";
 import LogoutModal from "../../Admin/layout/LogoutModal";
 
 // Reusable Nav Item for both desktop and mobile

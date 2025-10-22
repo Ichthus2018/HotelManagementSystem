@@ -31,7 +31,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error, status } = await supabase
         .from("users")
-        .select("id, email, admin, role")
+        .select(
+          `
+      id, 
+      email, 
+      admin, 
+      first_name, 
+      last_name, 
+      sidebar_permissions ( role_name, allowed_routes )
+    `
+        )
         .eq("id", id)
         .single();
 

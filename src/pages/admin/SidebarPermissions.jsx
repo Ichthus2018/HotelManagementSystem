@@ -1,7 +1,6 @@
-// File: src/pages/Admin/RoomNumbers.jsx
-
-import { useState, Suspense, useEffect } from "react";
+import { useState, lazy, Suspense } from "react";
 import ReactPaginate from "react-paginate";
+import { useSupabaseQuery } from "../../hooks/common/useSupabaseQuery";
 import supabase from "../../services/supabaseClient";
 
 // UI Components
@@ -11,44 +10,25 @@ import EmptyState from "../../components/ui/common/EmptyState";
 import Loader from "../../components/ui/common/loader";
 
 // Modals
-import { useParams } from "react-router-dom";
-import { useSupabaseQuery } from "../../hooks/common/useSupabaseQuery";
-import RoomStatusList from "../../components/Admin/Modals/RoomStatus/Pages/RoomStatusList";
-import AddRoomStatusModal from "../../components/Admin/Modals/RoomStatus/AddRoomStatusModal";
-import EditRoomStatusModal from "../../components/Admin/Modals/RoomStatus/EditRoomStatusModal"; // <--- NEW: Import Edit Modal
+import AddPermissionModal from "../../components/Admin/Modals/SidebarPermissions/AddPermissionModal";
+import EditPermissionModal from "../../components/Admin/Modals/SidebarPermissions/EditPermissionModal";
 import DeleteConfirmationModal from "../../components/ui/common/DeleteConfirmationModal";
+import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
 
 // Lazy-loaded View Component
+const PermissionList = lazy(() =>
+  import("../../components/Admin/Modals/SidebarPermissions/PermissionList")
+);
 
-const RoomStatus = () => {
+const SidebarPermissions = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // <--- NEW: State for edit modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null); // This can be used for both Edit and Delete
-  const { roomTypeId } = useParams();
-  const [roomTypeName, setRoomTypeName] = useState("");
-
-  useEffect(() => {
-    if (roomTypeId) {
-      const fetchRoomTypeName = async () => {
-        const { data } = await supabase
-          .from("room_types")
-          .select("title")
-          .eq("id", roomTypeId)
-          .single();
-        if (data) {
-          setRoomTypeName(data.title);
-        }
-      };
-      fetchRoomTypeName();
-    } else {
-      setRoomTypeName(""); // Reset if we navigate back to the "all rooms" page
-    }
-  }, [roomTypeId]);
+  const [selectedPermission, setSelectedPermission] = useState(null);
 
   const {
-    data: rooms,
+    data: permissions,
     totalCount,
     isLoading,
     error,
@@ -63,44 +43,40 @@ const RoomStatus = () => {
     handleSearch,
     clearSearch,
   } = useSupabaseQuery({
-    tableName: "rooms",
-    selectQuery:
-      "id, room_number, status, room_types(id, title), locations(id, name)",
-    searchColumn: "room_number",
-    initialPageSize: 10,
-    filter: roomTypeId ? { column: "room_type_id", value: roomTypeId } : null,
+    tableName: "sidebar_permissions",
+    selectQuery: "*",
+    searchColumn: "role_name",
+    initialPageSize: 5,
   });
 
   // Modal handlers
   const handleAddSuccess = () => {
     setIsAddModalOpen(false);
-    mutate(); // Re-fetch data
-  };
-
-  const openDeleteModal = (room) => {
-    setSelectedRoom(room);
-    setIsDeleteModalOpen(true);
-  };
-
-  // <--- NEW: Handlers for Edit Modal --->
-  const openEditModal = (room) => {
-    setSelectedRoom(room);
-    setIsEditModalOpen(true);
+    mutate();
   };
 
   const handleEditSuccess = () => {
     setIsEditModalOpen(false);
-    setSelectedRoom(null);
-    mutate(); // Re-fetch data
+    mutate();
   };
-  // <--- END NEW --->
+
+  const openEditModal = (permission) => {
+    setSelectedPermission(permission);
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (permission) => {
+    setSelectedPermission(permission);
+    setIsDeleteModalOpen(true);
+  };
 
   const handleConfirmDelete = async () => {
-    if (!selectedRoom) return;
+    if (!selectedPermission) return;
     setIsProcessing(true);
 
-    // Optimistic UI update
-    const updatedData = rooms.filter((r) => r.id !== selectedRoom.id);
+    const updatedData = permissions.filter(
+      (perm) => perm.id !== selectedPermission.id
+    );
     await mutate(
       { data: updatedData, count: totalCount - 1 },
       { revalidate: false }
@@ -108,18 +84,17 @@ const RoomStatus = () => {
 
     try {
       const { error: deleteError } = await supabase
-        .from("rooms")
+        .from("sidebar_permissions")
         .delete()
-        .eq("id", selectedRoom.id);
+        .eq("id", selectedPermission.id);
       if (deleteError) throw deleteError;
     } catch (err) {
-      console.error("Failed to delete room:", err);
-      // Revert on failure
+      console.error("Failed to delete permission:", err);
       mutate();
     } finally {
       setIsProcessing(false);
       setIsDeleteModalOpen(false);
-      setSelectedRoom(null);
+      setSelectedPermission(null);
     }
   };
 
@@ -136,14 +111,14 @@ const RoomStatus = () => {
         </div>
       );
 
-    if (!rooms || rooms.length === 0) {
+    if (!permissions || permissions.length === 0) {
       return (
         <EmptyState
-          title="No Rooms Found"
+          title="No Role Permissions Found"
           description={
             activeSearchTerm
               ? `No results for "${activeSearchTerm}".`
-              : 'Click "Add New Room" to get started.'
+              : 'Click "Add New Role" to get started.'
           }
         />
       );
@@ -151,8 +126,8 @@ const RoomStatus = () => {
 
     return (
       <Suspense fallback={<Loader />}>
-        <RoomStatusList
-          rooms={rooms}
+        <PermissionList
+          permissions={permissions}
           onEdit={openEditModal}
           onDelete={openDeleteModal}
         />
@@ -163,19 +138,28 @@ const RoomStatus = () => {
   return (
     <>
       <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
+        <div className="mb-4 flex justify-start">
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm shadow-sm">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+            <span>
+              This is just a sample — not yet connected to the sidebar.
+            </span>
+          </div>
+        </div>
         <PageHeader
-          title="Manage All Rooms"
-          description="View, add, or remove rooms and manage their status."
-          buttonText="Add New Room"
+          title="Sidebar Permissions"
+          description="Manage which sidebar items are visible for different user roles."
+          buttonText="Add New Role"
           onButtonClick={() => setIsAddModalOpen(true)}
         />
+
         <SearchInput
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           activeSearchTerm={activeSearchTerm}
           onSearch={handleSearch}
           onClear={clearSearch}
-          placeholder="Search by room number..."
+          placeholder="Search by role name..."
         />
 
         <div className="overflow-hidden">
@@ -204,31 +188,31 @@ const RoomStatus = () => {
         </div>
       </div>
 
-      <AddRoomStatusModal
+      <AddPermissionModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleAddSuccess}
       />
-      {selectedRoom && (
-        <EditRoomStatusModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSuccess={handleEditSuccess}
-          roomToEdit={selectedRoom}
-        />
-      )}
 
-      {selectedRoom && (
-        <DeleteConfirmationModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleConfirmDelete}
-          isDeleting={isProcessing}
-          itemName={selectedRoom.room_number}
-        />
+      {selectedPermission && (
+        <>
+          <EditPermissionModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSuccess={handleEditSuccess}
+            permission={selectedPermission}
+          />
+          <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleConfirmDelete}
+            isDeleting={isProcessing}
+            itemName={selectedPermission.role_name}
+          />
+        </>
       )}
     </>
   );
 };
 
-export default RoomStatus;
+export default SidebarPermissions;

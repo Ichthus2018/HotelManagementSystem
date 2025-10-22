@@ -171,7 +171,7 @@ const RoomNumbers = () => {
               ? `Rooms for "${roomTypeName || "..."}"`
               : "Manage All Rooms"
           }
-          description="View, add, or remove rooms and manage their status."
+          description="View, add, or remove rooms "
           buttonText="Add New Room"
           onButtonClick={() => setIsAddModalOpen(true)}
         />

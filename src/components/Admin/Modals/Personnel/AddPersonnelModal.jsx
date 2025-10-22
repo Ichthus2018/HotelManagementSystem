@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import {
   Dialog,
   DialogPanel,
@@ -40,7 +40,8 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
   // --- STATE MANAGEMENT ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("staff");
+  const [roleId, setRoleId] = useState(""); // Stores the ID of the selected role
+  const [roles, setRoles] = useState([]); // Stores all available roles from the database
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,11 +56,33 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
     hasNumber: false,
   });
 
+  // --- DATA FETCHING ---
+  // Fetch available roles from the database when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchRoles = async () => {
+        const { data, error } = await supabase
+          .from("sidebar_permissions")
+          .select("id, role_name")
+          .order("role_name", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching roles:", error);
+          setError("Could not load roles from the database.");
+        } else {
+          setRoles(data);
+        }
+      };
+      fetchRoles();
+    }
+  }, [isOpen]);
+
   // --- FUNCTIONS ---
   const handleClose = () => {
     setEmail("");
     setPassword("");
-    setRole("staff");
+    setRoleId("");
+    setRoles([]);
     setIsAdmin(false);
     setError("");
     setIsSubmitting(false);
@@ -86,23 +109,13 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleRoleChange = (e) => {
-    const newRole = e.target.value;
-    setRole(newRole);
-    if (newRole === "admin") {
-      setIsAdmin(true);
-    }
-  };
+    const selectedRoleId = e.target.value;
+    setRoleId(selectedRoleId);
 
-  const handleAdminToggle = (newAdminStatus) => {
-    if (!newAdminStatus && role === "admin") {
-      const confirmRemove = window.confirm(
-        "Are you sure you want to remove system access for a user with the 'Admin' role?"
-      );
-      if (confirmRemove) {
-        setIsAdmin(newAdminStatus);
-      }
-    } else {
-      setIsAdmin(newAdminStatus);
+    // Automatically grant system access if the selected role is "admin"
+    const selectedRole = roles.find((r) => r.id.toString() === selectedRoleId);
+    if (selectedRole && selectedRole.role_name.toLowerCase() === "admin") {
+      setIsAdmin(true);
     }
   };
 
@@ -115,44 +128,45 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
       setError("Password does not meet all the requirements.");
       return;
     }
+    if (!roleId) {
+      setError("Please select a role for the new user.");
+      return;
+    }
     setIsSubmitting(true);
-    let adminSession = null;
+
     try {
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      if (!data.session) throw new Error("Admin is not logged in.");
-      adminSession = data.session;
-      const { error: signUpError } = await supabase.auth.signUp({
+      // Step 1: Create the user in the auth system
+      const {
+        data: { user },
+        error: signUpError,
+      } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            role: role,
-            admin: isAdmin,
-          },
-        },
       });
       if (signUpError) throw signUpError;
+
+      // Step 2: Update the corresponding row in the public.users table with the role_id
+      if (user) {
+        const { error: updateUserError } = await supabase
+          .from("users")
+          .update({
+            role_id: parseInt(roleId, 10),
+            admin: isAdmin,
+            email: email, // Ensure the email is set in the public table
+          })
+          .eq("id", user.id);
+
+        if (updateUserError) throw updateUserError;
+      } else {
+        throw new Error("User was not created successfully.");
+      }
+
       onSuccess();
       handleClose();
     } catch (err) {
       console.error("Error adding personnel:", err);
       setError(err.message || "Failed to add personnel.");
     } finally {
-      if (adminSession) {
-        const { error: setSessionError } = await supabase.auth.setSession(
-          adminSession
-        );
-        if (setSessionError) {
-          console.error(
-            "Critical: Failed to restore admin session!",
-            setSessionError
-          );
-          setError(
-            "User created, but failed to restore your session. Please refresh the page."
-          );
-        }
-      }
       setIsSubmitting(false);
     }
   };
@@ -281,36 +295,44 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
                   {/* Role Dropdown */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Role*
+                      Role Name*
                     </label>
                     <select
-                      value={role}
+                      value={roleId}
                       onChange={handleRoleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || roles.length === 0}
+                      required
                       className="w-full py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 text-sm"
                     >
-                      <option value="staff">Staff</option>
-                      <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
+                      <option value="" disabled>
+                        {roles.length > 0
+                          ? "Select a role..."
+                          : "Loading roles..."}
+                      </option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.role_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* --- MODIFIED SECTION START --- */}
+                  {/* Account Access Toggle */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center">
                       <FaCrown className="h-5 w-5 text-yellow-500 mr-3" />
                       <div>
                         <label className="block text-sm font-semibold text-gray-700">
-                          Account Access
+                          System Access
                         </label>
                         <p className="text-xs">
                           {isAdmin ? (
                             <span className="font-bold text-green-600">
-                              Has system access
+                              Access Enabled
                             </span>
                           ) : (
                             <span className="font-bold text-red-600">
-                              Access disabled
+                              Access Disabled
                             </span>
                           )}
                         </p>
@@ -319,10 +341,21 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
 
                     <button
                       type="button"
-                      onClick={() => handleAdminToggle(!isAdmin)}
-                      disabled={isSubmitting}
+                      onClick={() => setIsAdmin(!isAdmin)}
+                      disabled={
+                        isSubmitting ||
+                        roles
+                          .find((r) => r.id.toString() === roleId)
+                          ?.role_name.toLowerCase() === "admin"
+                      }
                       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                         isAdmin ? "bg-blue-600" : "bg-gray-300"
+                      } ${
+                        roles
+                          .find((r) => r.id.toString() === roleId)
+                          ?.role_name.toLowerCase() === "admin"
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
                     >
                       <span
@@ -331,18 +364,6 @@ const AddPersonnelModal = ({ isOpen, onClose, onSuccess }) => {
                         }`}
                       />
                     </button>
-                  </div>
-                  {/* --- MODIFIED SECTION END --- */}
-
-                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-                    <strong>Note:</strong>{" "}
-                    {isAdmin && role === "admin"
-                      ? "✓ Admin user — has full access."
-                      : isAdmin && role !== "admin"
-                      ? `⚠ Access ON but user role is '${role}'.`
-                      : !isAdmin && role === "admin"
-                      ? "⚠ Admin role but access is OFF."
-                      : "Regular user — access is OFF."}
                   </div>
 
                   {error && (

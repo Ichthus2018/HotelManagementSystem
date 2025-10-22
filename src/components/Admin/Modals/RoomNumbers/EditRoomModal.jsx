@@ -10,7 +10,12 @@ import { IoIosCloseCircleOutline } from "react-icons/io";
 import supabase from "../../../../services/supabaseClient";
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api";
+// 👇 THIS IS THE FIX
+// 1. REMOVE the hardcoded constant below
+// const API_BASE_URL = "http://localhost:5000/api";
+
+// 2. ADD this import to use the same URL as the AddRoomModal
+import { API_BASE_URL } from "../../../../services/api";
 
 const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
   // Form state
@@ -23,7 +28,6 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
   // Data for dropdowns
   const [roomTypes, setRoomTypes] = useState([]);
   const [locations, setLocations] = useState([]);
-  // 👇 State name changed for clarity: it holds only the available locks
   const [availableLocks, setAvailableLocks] = useState([]);
 
   // Control state
@@ -43,7 +47,6 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
     }
   }, [roomToEdit]);
 
-  // 👇 THIS IS THE CORE LOGIC UPDATE
   // Fetch related data and filter locks when the modal opens
   useEffect(() => {
     if (!isOpen) return;
@@ -53,17 +56,14 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
       setError("");
       try {
         // 1. Fetch all necessary data concurrently
-        const [
-          roomTypesRes,
-          locationsRes,
-          allLocksRes,
-          assignedLocksRes, // Get locks already in use
-        ] = await Promise.all([
-          supabase.from("room_types").select("id, title"),
-          supabase.from("locations").select("id, name"),
-          axios.get(`${API_BASE_URL}/locks`),
-          supabase.from("rooms").select("lock_id").not("lock_id", "is", null), // Fetch used lock_ids
-        ]);
+        const [roomTypesRes, locationsRes, allLocksRes, assignedLocksRes] =
+          await Promise.all([
+            supabase.from("room_types").select("id, title"),
+            supabase.from("locations").select("id, name"),
+            // This call will now use the correct, imported API_BASE_URL
+            axios.get(`${API_BASE_URL}/locks`),
+            supabase.from("rooms").select("lock_id").not("lock_id", "is", null),
+          ]);
 
         if (roomTypesRes.error) throw roomTypesRes.error;
         if (locationsRes.error) throw locationsRes.error;
@@ -79,15 +79,12 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
         );
         const currentRoomLockId = roomToEdit?.lock_id;
 
-        // 2. Filter logic: A lock is available if it's not in the assigned list,
-        //    OR if it's the one currently assigned to THIS room we are editing.
         const filteredLocks = allLocks.filter(
           (lock) =>
             !assignedLockIds.has(lock.lockId) ||
             lock.lockId === currentRoomLockId
         );
 
-        // 3. Set the filtered list to state
         setAvailableLocks(filteredLocks);
       } catch (err) {
         console.error("Failed to fetch modal data:", err);
@@ -98,7 +95,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
     };
 
     fetchData();
-  }, [isOpen, roomToEdit]); // Dependency on roomToEdit is crucial
+  }, [isOpen, roomToEdit]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -191,6 +188,10 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                 </DialogTitle>
                 {isLoading ? (
                   <div className="mt-4 text-center">Loading form data...</div>
+                ) : error ? ( // Added this to explicitly show the error message
+                  <div className="mt-4 p-4 text-center text-red-600 bg-red-100 rounded-lg">
+                    {error}
+                  </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     {/* Room Number */}
@@ -235,8 +236,7 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         ))}
                       </select>
                     </div>
-
-                    {/* 👇 LOCK DROPDOWN - MAPPED TO 'availableLocks' */}
+                    {/* Lock Dropdown */}
                     <div>
                       <label
                         htmlFor="lock"
@@ -258,7 +258,6 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         ))}
                       </select>
                     </div>
-
                     {/* Location */}
                     <div>
                       <label
@@ -302,9 +301,6 @@ const EditRoomModal = ({ isOpen, onClose, onSuccess, roomToEdit }) => {
                         ))}
                       </select>
                     </div>
-
-                    {error && <p className="text-sm text-red-600">{error}</p>}
-
                     <div className="mt-6 flex justify-end">
                       <button
                         type="submit"

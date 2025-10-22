@@ -10,7 +10,6 @@ import {
   FaEyeSlash,
   FaUserLock,
 } from "react-icons/fa";
-import LogoStay from "../../assets/LogoStay";
 import Logo from "../../assets/Logo.png";
 
 const Login = () => {

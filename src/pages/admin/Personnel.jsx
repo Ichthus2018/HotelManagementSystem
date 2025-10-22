@@ -44,12 +44,26 @@ const Personnel = () => {
     handleSearch,
     clearSearch,
   } = useSupabaseQuery({
-    tableName: "users", // Make sure this is the correct table
-    selectQuery: "id, email, created_at, role, admin", // Explicitly select columns
+    tableName: "users",
+    // --- MODIFIED SECTION START ---
+    // Fetch user data and the related role name from sidebar_permissions
+    selectQuery: `
+      id,
+      email,
+      created_at,
+      admin,
+      role_id,
+      sidebar_permissions (
+        id,
+        role_name
+      )
+    `,
+    // --- MODIFIED SECTION END ---
     searchColumn: "email",
     initialPageSize: 5,
   });
-  // Modal handlers
+
+  // Modal handlers (no changes needed here)
   const handleAddSuccess = () => {
     setIsAddModalOpen(false);
     mutate();
@@ -70,9 +84,6 @@ const Personnel = () => {
   };
 
   const openDeleteModal = (person) => {
-    console.log("Deleting personnel:", person);
-    console.log("User ID:", person.id);
-    console.log("User email:", person.email);
     setSelectedPersonnel(person);
     setIsDeleteModalOpen(true);
   };
@@ -85,32 +96,11 @@ const Personnel = () => {
   const handleConfirmDelete = async () => {
     if (!selectedPersonnel) return;
     setIsProcessing(true);
-
     try {
-      // Try multiple approaches
-      const userId = selectedPersonnel.id;
-
-      // Approach 1: Direct auth delete
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-      if (authError) {
-        console.log("Auth delete failed, trying public table only:", authError);
-
-        // Approach 2: Delete from public table only
-        const { error: publicError } = await supabase
-          .from("users")
-          .delete()
-          .eq("id", userId);
-
-        if (publicError) {
-          throw new Error(`Delete failed: ${publicError.message}`);
-        }
-
-        console.log("Deleted from public table only");
-      } else {
-        console.log("Deleted from auth system");
-      }
-
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        selectedPersonnel.id
+      );
+      if (authError) throw authError;
       mutate();
     } catch (err) {
       console.error("Failed to delete personnel:", err);
@@ -177,7 +167,6 @@ const Personnel = () => {
           onClear={clearSearch}
           placeholder="Search by email..."
         />
-
         <div className="overflow-hidden">
           <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
             {renderContent()}
@@ -194,7 +183,7 @@ const Personnel = () => {
                   forcePage={currentPage - 1}
                   containerClassName="flex items-center justify-center gap-2 text-base font-medium"
                   pageLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
-                  activeLinkClassName="bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+                  activeLinkClassName="bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
                   previousLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
                   nextLinkClassName="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100 transition duration-200 cursor-pointer"
                 />
@@ -203,13 +192,11 @@ const Personnel = () => {
           </div>
         </div>
       </div>
-
       <AddPersonnelModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={handleAddSuccess}
       />
-
       {selectedPersonnel && (
         <>
           <EditPersonnelModal
@@ -218,22 +205,18 @@ const Personnel = () => {
             onSuccess={handleEditSuccess}
             personnel={selectedPersonnel}
           />
-
           <ChangePasswordModal
             isOpen={isPasswordModalOpen}
             onClose={() => setIsPasswordModalOpen(false)}
             onSuccess={handlePasswordSuccess}
             personnel={selectedPersonnel}
           />
-
           <DeleteConfirmationModal
             isOpen={isDeleteModalOpen}
             onClose={() => setIsDeleteModalOpen(false)}
             onConfirm={handleConfirmDelete}
             isDeleting={isProcessing}
-            itemName={
-              selectedPersonnel.auth_users?.email || selectedPersonnel.email
-            }
+            itemName={selectedPersonnel.email}
           />
         </>
       )}

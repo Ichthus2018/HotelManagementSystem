@@ -14,15 +14,36 @@ import { FaCrown } from "react-icons/fa";
 
 const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("staff");
+  const [roleId, setRoleId] = useState(""); // Store the role ID
+  const [roles, setRoles] = useState([]); // Store available roles
   const [admin, setAdmin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Fetch available roles from the database when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchRoles = async () => {
+        const { data, error } = await supabase
+          .from("sidebar_permissions")
+          .select("id, role_name")
+          .order("role_name", { ascending: true });
+        if (error) {
+          console.error("Error fetching roles:", error);
+          setError("Could not load roles from the database.");
+        } else {
+          setRoles(data);
+        }
+      };
+      fetchRoles();
+    }
+  }, [isOpen]);
+
+  // Populate form with existing personnel data when it changes
   useEffect(() => {
     if (personnel) {
-      setEmail(personnel.auth_users?.email || personnel.email || "");
-      setRole(personnel.role || "staff");
+      setEmail(personnel.email || "");
+      setRoleId(personnel.role_id || "");
       setAdmin(personnel.admin || false);
       setError("");
     }
@@ -40,21 +61,17 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
     }
     setIsSubmitting(true);
     setError("");
+
     try {
-      if (email !== (personnel.auth_users?.email || personnel.email)) {
-        const { error: emailError } = await supabase.auth.admin.updateUserById(
-          personnel.id,
-          { email: email }
-        );
-        if (emailError) throw emailError;
-      }
+      // Update the user's role_id and admin status in the public.users table
       const { error: updateError } = await supabase
         .from("users")
         .update({
-          role: role,
+          role_id: roleId ? parseInt(roleId, 10) : null,
           admin: admin,
         })
         .eq("id", personnel.id);
+
       if (updateError) throw updateError;
       onSuccess();
       handleClose();
@@ -66,9 +83,13 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
     }
   };
 
-  const handleRoleChange = (newRole) => {
-    setRole(newRole);
-    if (newRole === "admin") {
+  const handleRoleChange = (e) => {
+    const selectedRoleId = e.target.value;
+    setRoleId(selectedRoleId);
+
+    // Automatically grant and disable the toggle for system access if the selected role is "admin"
+    const selectedRole = roles.find((r) => r.id.toString() === selectedRoleId);
+    if (selectedRole && selectedRole.role_name.toLowerCase() === "admin") {
       setAdmin(true);
     }
   };
@@ -119,51 +140,55 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
                   {/* Email Input */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Email Address*
+                      Email Address
                     </label>
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 text-sm"
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 focus:outline-none text-sm cursor-not-allowed"
                     />
                   </div>
 
                   {/* Role Dropdown */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Role*
+                      Role Name*
                     </label>
                     <select
-                      value={role}
-                      onChange={(e) => handleRoleChange(e.target.value)}
-                      disabled={isSubmitting}
+                      value={roleId}
+                      onChange={handleRoleChange}
+                      disabled={isSubmitting || roles.length === 0}
                       className="w-full py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 text-sm"
                     >
-                      <option value="staff">Staff</option>
-                      <option value="manager">Manager</option>
-                      <option value="admin">Admin</option>
+                      <option value="" disabled>
+                        Select a role...
+                      </option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.role_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* --- MODIFIED SECTION START --- */}
+                  {/* Account Access Toggle */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center">
                       <FaCrown className="h-5 w-5 text-yellow-500 mr-3" />
                       <div>
                         <label className="block text-sm font-semibold text-gray-700">
-                          Account Access
+                          System Access
                         </label>
                         <p className="text-xs">
                           {admin ? (
                             <span className="font-bold text-green-600">
-                              Has system access
+                              Access Enabled
                             </span>
                           ) : (
                             <span className="font-bold text-red-600">
-                              Access disabled
+                              Access Disabled
                             </span>
                           )}
                         </p>
@@ -172,10 +197,21 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
                     <button
                       type="button"
                       onClick={() => setAdmin(!admin)}
-                      disabled={isSubmitting || role === "admin"}
+                      disabled={
+                        isSubmitting ||
+                        roles
+                          .find((r) => r.id.toString() === roleId)
+                          ?.role_name.toLowerCase() === "admin"
+                      }
                       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                         admin ? "bg-blue-600" : "bg-gray-300"
-                      } ${role === "admin" ? "cursor-not-allowed" : ""}`}
+                      } ${
+                        roles
+                          .find((r) => r.id.toString() === roleId)
+                          ?.role_name.toLowerCase() === "admin"
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
+                      }`}
                     >
                       <span
                         className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -183,18 +219,6 @@ const EditPersonnelModal = ({ isOpen, onClose, onSuccess, personnel }) => {
                         }`}
                       />
                     </button>
-                  </div>
-                  {/* --- MODIFIED SECTION END --- */}
-
-                  <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-                    <strong>Note:</strong>{" "}
-                    {admin && role === "admin"
-                      ? "✓ Admin user — has full access."
-                      : admin && role !== "admin"
-                      ? `⚠ Access ON but user role is '${role}'.`
-                      : !admin && role === "admin"
-                      ? "⚠ Admin role but access is OFF. (Access is required for Admin role)"
-                      : "Regular user — access is OFF."}
                   </div>
 
                   {error && (

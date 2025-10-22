@@ -48,6 +48,9 @@ import ReceivedItems from "./pages/admin/ReceivedItems";
 import InventoryOverview from "./pages/admin/InventoryOverview";
 import InventoryActions from "./pages/admin/InventoryActions";
 import InventoryHistory from "./components/Admin/Modals/InventoryHistory/InventoryHistory";
+import SidebarPermissions from "./pages/admin/SidebarPermissions";
+import InspectionWorkflowSettings from "./pages/admin/InspectionWorkflowSettings";
+import RoomAssignments from "./pages/admin/RoomAssignments";
 
 function App() {
   const { user, loading } = useAuth();
@@ -113,6 +116,15 @@ function App() {
             <Route path="/admin/itemType" element={<ItemType />} />
             <Route path="/admin/item" element={<Items />} />
             <Route path="/admin/receivedItems" element={<ReceivedItems />} />
+            <Route path="/admin/permissions" element={<SidebarPermissions />} />
+            <Route
+              path="/admin/inspectionWorkflowSettings"
+              element={<InspectionWorkflowSettings />}
+            />
+            <Route
+              path="/admin/roomAssignments"
+              element={<RoomAssignments />}
+            />
             <Route
               path="/admin/inventoryActions"
               element={<InventoryActions />}
