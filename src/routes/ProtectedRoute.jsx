@@ -1,13 +1,13 @@
 // src/routes/ProtectedRoute.jsx
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useUser } from "../hooks/useUser"; // <-- CHANGED
 import Loader from "../components/ui/common/loader";
 
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useUser(); // <-- CHANGED
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 

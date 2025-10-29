@@ -5,7 +5,6 @@ import {
   Navigate,
   HashRouter,
 } from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
 import Loader from "./components/ui/common/loader";
 
 // Layouts
@@ -51,11 +50,15 @@ import InventoryHistory from "./components/Admin/Modals/InventoryHistory/Invento
 import SidebarPermissions from "./pages/admin/SidebarPermissions";
 import InspectionWorkflowSettings from "./pages/admin/InspectionWorkflowSettings";
 import RoomAssignments from "./pages/admin/RoomAssignments";
+import { useUser } from "./hooks/useUser";
+import CleaningChecklistPage from "./pages/admin/CleaningChecklistPage";
+import HouseKeeping from "./pages/admin/HouseKeeping";
+import Inspector from "./pages/admin/Inspector";
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useUser();
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />; // Use your Loader component here
   }
 
@@ -118,6 +121,10 @@ function App() {
             <Route path="/admin/receivedItems" element={<ReceivedItems />} />
             <Route path="/admin/permissions" element={<SidebarPermissions />} />
             <Route
+              path="/admin/cleaningChecklistPage"
+              element={<CleaningChecklistPage />}
+            />
+            <Route
               path="/admin/inspectionWorkflowSettings"
               element={<InspectionWorkflowSettings />}
             />
@@ -125,6 +132,8 @@ function App() {
               path="/admin/roomAssignments"
               element={<RoomAssignments />}
             />
+            <Route path="/admin/houseKeeping" element={<HouseKeeping />} />
+            <Route path="/admin/inspector" element={<Inspector />} />
             <Route
               path="/admin/inventoryActions"
               element={<InventoryActions />}

@@ -1,7 +1,6 @@
 // src/layouts/Navbar.jsx
 import { useState, Fragment } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../../hooks/useAuth";
 import supabase from "../../../services/supabaseClient"; // Assuming path is correct
 
 import {
@@ -16,6 +15,7 @@ import {
 } from "@headlessui/react";
 import { FaBars, FaTimes, FaBook, FaSignOutAlt } from "react-icons/fa";
 import LogoutModal from "../../Admin/layout/LogoutModal";
+import { useUser } from "../../../hooks/useUser";
 
 // Reusable Nav Item for both desktop and mobile
 const NavItem = ({ to, children, onClick }) => (
@@ -35,7 +35,7 @@ const NavItem = ({ to, children, onClick }) => (
 );
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

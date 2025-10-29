@@ -1,18 +1,18 @@
 // src/routes/AdminRoutes.jsx
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useUser } from "../hooks/useUser"; // <-- CHANGED
 import Loader from "../components/ui/common/loader";
 
 const AdminRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useUser(); // <-- CHANGED
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
-  // If user is logged in AND is an admin, render the requested admin page.
-  // Otherwise, redirect them to the home page.
+  // If fetching is done, and we have a user who is an admin, show the content.
+  // Otherwise, redirect. The `session` check is implicitly handled by `useUser`.
   return user && user.admin ? <Outlet /> : <Navigate to="/" />;
 };
 

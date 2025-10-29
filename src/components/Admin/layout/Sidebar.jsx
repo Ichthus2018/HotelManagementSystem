@@ -270,6 +270,28 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+              <NavItem
+                to="/admin/houseKeeping"
+                icon={<FaCubes size={20} />}
+                label="HouseKeeping"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/inspector"
+                icon={<FaCubes size={20} />}
+                label="Inspector"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+
+              <NavItem
+                to="/admin/cleaningChecklistPage"
+                icon={<FaKeycdn size={20} />} // Example icon
+                label="Cleaning Checklist"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
             </ul>
           </li>
           {/* Connections Section */}

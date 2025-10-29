@@ -9,9 +9,8 @@ import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
 import Loader from "../../components/ui/common/loader";
-import RoomCard from "../../components/Admin/Modals/RoomAssignments/RoomCard";
-import TagRoomRoleModal from "../../components/Admin/Modals/RoomAssignments/TagRoomRoleModal";
-import SortLocationsModal from "../../components/Admin/Modals/RoomAssignments/SortLocationsModal";
+import HousekeepingRoomCard from "../../components/Admin/Modals/Housekeeping/HousekeepingRoomCard";
+import SortLocationsModal from "../../components/Admin/Modals/Housekeeping/SortLocationsModal";
 
 // Constants
 export const SWR_KEY_ROOMS_DATA = "rooms_data";
@@ -27,6 +26,8 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
     const inspectionWorkflow = settings?.setting_value !== "false";
 
     let staffData = { housekeepers: [], inspectors: [] };
+
+    // Only fetch staff data for admins
     if (currentUser.admin || currentUser.sidebar_role === "Admin") {
       const { data: housekeepers } = await supabase
         .from("user_roles_view")
@@ -42,7 +43,7 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
       staffData.inspectors = inspectors || [];
     }
 
-    // Main query to get ALL rooms
+    // Main query to get rooms - STRICTLY FILTERED FOR HOUSEKEEPING
     let query = supabase.from("rooms").select(
       `
         id, room_number, status,
@@ -61,20 +62,34 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
       );
     }
 
-    // Non-admin filtering logic from component 2
+    // STRICT FILTERING FOR HOUSEKEEPING - Only show rooms they need to work on
     if (!currentUser.admin && currentUser.sidebar_role !== "Admin") {
       switch (currentUser.workflow_role) {
         case "Housekeeping":
-          query = query.or(
-            `room_assignments.status.eq.Dirty,room_assignments.housekeepers.cs.{"${currentUser.id}"}`
-          );
+          // --- MODIFICATION START ---
+          // This filter now strictly shows rooms that are:
+          // 1. Assigned to the current housekeeper (their ID is in the 'housekeepers' array).
+          // 2. Have a status of "For Cleaning".
+          // This removes "Dirty" rooms available for self-assignment.
+          query = query
+            .filter(
+              "room_assignments.housekeepers",
+              "cs",
+              `{${currentUser.id}}`
+            )
+            .eq("room_assignments.status", "For Cleaning");
           break;
         case "Inspector":
+          // Only show rooms assigned to this inspector for inspection
           query = query.eq("room_assignments.inspector", currentUser.id);
           break;
         case "Housekeeping Manager":
+          // Show all rooms with assignments
           query = query.not("room_assignments.housekeepers", "is", null);
           break;
+        default:
+          // For other roles, show nothing
+          query = query.eq("room_assignments.status", "NonexistentStatus");
       }
     }
 
@@ -88,7 +103,7 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
 
     // Fetch housekeeper details for assigned rooms
     const housekeeperIds = new Set();
-    rooms.forEach((room) => {
+    rooms?.forEach((room) => {
       const assignment = room.room_assignments?.[0];
       if (assignment?.housekeepers?.length > 0) {
         assignment.housekeepers.forEach((id) => housekeeperIds.add(id));
@@ -106,7 +121,7 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
       }
     }
 
-    const roomsWithDetails = rooms.map((room) => {
+    const roomsWithDetails = (rooms || []).map((room) => {
       const assignment = room.room_assignments?.[0];
       if (assignment?.housekeepers?.length > 0) {
         assignment.housekeeper_details = assignment.housekeepers
@@ -129,11 +144,9 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
   }
 };
 
-const RoomAssignments = () => {
+const HouseKeeping = () => {
   // Modal states
-  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
 
   // Data fetching and filtering state
   const [searchTerm, setSearchTerm] = useState("");
@@ -233,16 +246,6 @@ const RoomAssignments = () => {
     localStorage.setItem(LOCATION_ORDER_STORAGE_KEY, JSON.stringify(newOrder));
   };
 
-  const openTagModal = (room) => {
-    setSelectedRoom(room);
-    setIsTagModalOpen(true);
-  };
-
-  const closeTagModal = () => {
-    setIsTagModalOpen(false);
-    setSelectedRoom(null);
-  };
-
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
@@ -277,11 +280,11 @@ const RoomAssignments = () => {
     if (groupedAndSortedRooms.length === 0) {
       return (
         <EmptyState
-          title="No Rooms Found"
+          title="No Rooms Assigned"
           description={
             searchTerm
-              ? "No rooms match your current search."
-              : "No rooms are available at this time."
+              ? "No assigned rooms match your current search."
+              : "You have no rooms assigned for cleaning at this time."
           }
           action={
             searchTerm && (
@@ -297,7 +300,6 @@ const RoomAssignments = () => {
       );
     }
 
-    // New rendering logic: iterate over groups
     return (
       <div className="p-4 md:p-6 space-y-8">
         {groupedAndSortedRooms.map(({ location, rooms }) => (
@@ -307,11 +309,10 @@ const RoomAssignments = () => {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {rooms.map((room) => (
-                <RoomCard
+                <HousekeepingRoomCard
                   key={room.id}
                   room={room}
                   currentUser={currentUser}
-                  onAdminAssign={openTagModal}
                   inspectionWorkflow={inspectionWorkflow}
                   staffData={staffData}
                 />
@@ -327,8 +328,8 @@ const RoomAssignments = () => {
     <>
       <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
         <PageHeader
-          title="Room Assignments"
-          description="View all rooms grouped by location and manage cleaning assignments."
+          title="My Cleaning Assignments"
+          description="View your assigned rooms and complete cleaning checklists."
         />
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -354,15 +355,6 @@ const RoomAssignments = () => {
         </div>
       </div>
 
-      <TagRoomRoleModal
-        isOpen={isTagModalOpen}
-        onClose={closeTagModal}
-        roomToTag={selectedRoom}
-        housekeepers={staffData?.housekeepers || []}
-        inspectors={staffData?.inspectors || []}
-        currentUser={currentUser}
-      />
-
       <SortLocationsModal
         isOpen={isSortModalOpen}
         onClose={() => setIsSortModalOpen(false)}
@@ -373,4 +365,4 @@ const RoomAssignments = () => {
   );
 };
 
-export default RoomAssignments;
+export default HouseKeeping;

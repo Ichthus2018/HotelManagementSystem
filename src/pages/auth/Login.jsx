@@ -1,15 +1,8 @@
-// src/pages/auth/Login.jsx
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import supabase from "../../services/supabaseClient";
-import { useAuth } from "../../hooks/useAuth";
-import {
-  FaEnvelope,
-  FaLock,
-  FaEye,
-  FaEyeSlash,
-  FaUserLock,
-} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../../hooks/useUser";
+import { useSession } from "../../context/SessionContext";
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import Logo from "../../assets/Logo.png";
 
 const Login = () => {
@@ -17,14 +10,15 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useUser();
+  const { supabase } = useSession();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
       if (user.admin) {
-        navigate("/admin");
+        navigate("/admin/dashboard");
       } else {
         navigate("/");
       }
@@ -57,9 +51,9 @@ const Login = () => {
       {/* Enhanced Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"></div>
-        <div className="absolute -top-40 right-0 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute -bottom-20 left-20 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse animation-delay-4000"></div>
-        <div className="absolute -bottom-40 right-20 w-80 h-80 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse animation-delay-6000"></div>
+        <div className="absolute -top-40 right-0 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse [animation-delay:2s]"></div>
+        <div className="absolute -bottom-20 left-20 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse [animation-delay:4s]"></div>
+        <div className="absolute -bottom-40 right-20 w-80 h-80 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse [animation-delay:6s]"></div>
       </div>
 
       {/* Main Container - Wider and more responsive */}
@@ -108,8 +102,9 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                     className="w-full pl-10 lg:pl-12 pr-4 py-3 lg:py-4 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-300 text-sm lg:text-base shadow-sm hover:shadow-md"
-                    placeholder="admin123@gmail.com"
+                    placeholder="Enter your email address"
                   />
                 </div>
               </div>
@@ -129,6 +124,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     className="w-full pl-10 lg:pl-12 pr-10 lg:pr-12 py-3 lg:py-4 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-300 text-sm lg:text-base shadow-sm hover:shadow-md"
                     placeholder="Enter your password"
                   />
@@ -168,35 +164,16 @@ const Login = () => {
               </div>
             </form>
 
-            {/* Sign Up Link */}
+            {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500">
                 Powered by{" "}
                 <span className="font-semibold">Ichthus Technology</span>
-                {/* <Link
-                  to="/register"
-                  className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-300"
-                >
-                  Sign Up
-                </Link> */}
               </p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Custom CSS for animation delays */}
-      <style jsx>{`
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        .animation-delay-6000 {
-          animation-delay: 6s;
-        }
-      `}</style>
     </div>
   );
 };

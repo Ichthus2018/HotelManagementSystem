@@ -1,3 +1,5 @@
+import React from "react";
+
 import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import supabase from "../../services/supabaseClient";
@@ -9,8 +11,7 @@ import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
 import Loader from "../../components/ui/common/loader";
-import RoomCard from "../../components/Admin/Modals/RoomAssignments/RoomCard";
-import TagRoomRoleModal from "../../components/Admin/Modals/RoomAssignments/TagRoomRoleModal";
+import InspectorRoomCard from "../../components/Admin/Modals/Inspector/InspectorRoomCard";
 import SortLocationsModal from "../../components/Admin/Modals/RoomAssignments/SortLocationsModal";
 
 // Constants
@@ -61,7 +62,7 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
       );
     }
 
-    // Non-admin filtering logic from component 2
+    // Non-admin filtering logic
     if (!currentUser.admin && currentUser.sidebar_role !== "Admin") {
       switch (currentUser.workflow_role) {
         case "Housekeeping":
@@ -129,11 +130,9 @@ const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
   }
 };
 
-const RoomAssignments = () => {
+const Inspector = () => {
   // Modal states
-  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
 
   // Data fetching and filtering state
   const [searchTerm, setSearchTerm] = useState("");
@@ -233,16 +232,6 @@ const RoomAssignments = () => {
     localStorage.setItem(LOCATION_ORDER_STORAGE_KEY, JSON.stringify(newOrder));
   };
 
-  const openTagModal = (room) => {
-    setSelectedRoom(room);
-    setIsTagModalOpen(true);
-  };
-
-  const closeTagModal = () => {
-    setIsTagModalOpen(false);
-    setSelectedRoom(null);
-  };
-
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
@@ -297,7 +286,6 @@ const RoomAssignments = () => {
       );
     }
 
-    // New rendering logic: iterate over groups
     return (
       <div className="p-4 md:p-6 space-y-8">
         {groupedAndSortedRooms.map(({ location, rooms }) => (
@@ -307,11 +295,10 @@ const RoomAssignments = () => {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {rooms.map((room) => (
-                <RoomCard
+                <InspectorRoomCard
                   key={room.id}
                   room={room}
                   currentUser={currentUser}
-                  onAdminAssign={openTagModal}
                   inspectionWorkflow={inspectionWorkflow}
                   staffData={staffData}
                 />
@@ -327,8 +314,8 @@ const RoomAssignments = () => {
     <>
       <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
         <PageHeader
-          title="Room Assignments"
-          description="View all rooms grouped by location and manage cleaning assignments."
+          title="Inspector"
+          description="View all rooms grouped by location and Inspector assignments."
         />
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -354,15 +341,6 @@ const RoomAssignments = () => {
         </div>
       </div>
 
-      <TagRoomRoleModal
-        isOpen={isTagModalOpen}
-        onClose={closeTagModal}
-        roomToTag={selectedRoom}
-        housekeepers={staffData?.housekeepers || []}
-        inspectors={staffData?.inspectors || []}
-        currentUser={currentUser}
-      />
-
       <SortLocationsModal
         isOpen={isSortModalOpen}
         onClose={() => setIsSortModalOpen(false)}
@@ -373,4 +351,4 @@ const RoomAssignments = () => {
   );
 };
 
-export default RoomAssignments;
+export default Inspector;

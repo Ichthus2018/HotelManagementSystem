@@ -1,32 +1,27 @@
-// src/layouts/AdminLayout.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { FaBars } from "react-icons/fa";
-import supabase from "../../../services/supabaseClient";
+import { useUser } from "../../../hooks/useUser";
+import { useSession } from "../../../context/SessionContext";
 import LogoutModal from "./LogoutModal";
-import Sidebar from "./Sidebar"; // Import the new Sidebar component
+import Sidebar from "./Sidebar";
+import Loader from "../../ui/common/loader";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user, isLoading, mutate } = useUser(); // <-- Get user data and mutate from SWR
+  const { supabase } = useSession(); // <-- Get the supabase client from context
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) {
-        navigate("/login");
-      } else {
-        setUser(data.user);
-      }
-    };
-    fetchUser();
-  }, [navigate]);
+  // No more useEffect to fetch user! SWR handles it all.
 
   const handleLogout = async () => {
     setIsLogoutModalOpen(false);
     await supabase.auth.signOut();
+    // Immediately clear the user data from the SWR cache for a snappy UI update
+    mutate(null, false);
     navigate("/login");
   };
 
@@ -37,14 +32,18 @@ export default function AdminLayout() {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
+  // Show a loader while the initial session and user profile are being fetched
+  if (isLoading) {
+    return <Loader />;
+  }
+
   return (
     <div className="flex h-screen text-gray-800 overflow-hidden font-sans">
-      {/* ====== SIDEBAR ====== */}
       <Sidebar
         sidebarOpen={sidebarOpen}
         toggleSidebar={toggleSidebar}
         setSidebarOpen={setSidebarOpen}
-        user={user}
+        user={user} // <-- Pass the user from our hook
         handleLogoutClick={handleLogoutClick}
       />
 
@@ -62,7 +61,7 @@ export default function AdminLayout() {
         <Outlet />
       </main>
 
-      {/* Mobile Overlay */}
+      {/* ====== MOBILE OVERLAY ====== */}
       {sidebarOpen && (
         <div
           onClick={toggleSidebar}
@@ -71,7 +70,7 @@ export default function AdminLayout() {
         ></div>
       )}
 
-      {/* Render the Logout Modal */}
+      {/* ====== LOGOUT MODAL ====== */}
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}

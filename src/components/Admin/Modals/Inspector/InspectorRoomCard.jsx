@@ -1,16 +1,20 @@
 import { useState } from "react";
+// REMOVED: Unnecessary imports for the admin panel
+// import useSWR, { useSWRConfig } from "swr";
+// import supabase from "../../../../services/supabaseClient";
+// import { SWR_KEY_ROOMS_DATA } from "../../../../pages/app/Inspector";
 import {
-  UserGroupIcon,
+  // REMOVED: UserGroupIcon is no longer used
   CheckCircleIcon,
   SparklesIcon,
   ShieldCheckIcon,
   ArrowUturnLeftIcon,
   ClockIcon,
   ExclamationTriangleIcon,
-  ClipboardDocumentCheckIcon, // New icon
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useRoomActions } from "../../../../hooks/Admin/useRoomActions";
-import CleaningSessionModal from "./CleaningSessionModal"; // Import the new modal
+import CleaningSessionModal from "./CleaningSessionModal";
 
 const statusConfig = {
   Dirty: {
@@ -39,10 +43,9 @@ const statusConfig = {
   },
 };
 
-const RoomCard = ({
+const InspectorRoomCard = ({
   room,
   currentUser,
-  onAdminAssign,
   inspectionWorkflow,
   staffData,
 }) => {
@@ -139,41 +142,6 @@ const RoomCard = ({
       "w-full flex items-center justify-center gap-1.5 rounded-md text-xs font-semibold text-white shadow transition-all duration-150";
 
     switch (currentUser.workflow_role) {
-      case "Admin":
-        return (
-          <div className="space-y-2">
-            <div>
-              <label
-                htmlFor={`status-select-${room.id}`}
-                className="block text-[10px] text-gray-500 mb-1"
-              >
-                Change Status
-              </label>
-              <select
-                id={`status-select-${room.id}`}
-                value={assignment.status}
-                onChange={(e) =>
-                  updateStatus({ roomId: room.id, newStatus: e.target.value })
-                }
-                disabled={isProcessing}
-                className="w-full rounded-lg border-gray-200 bg-gray-50 text-sm text-gray-700 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-300 disabled:bg-gray-100 transition-all duration-150"
-              >
-                <option>Dirty</option>
-                <option>For Cleaning</option>
-                <option>For Inspection</option>
-                <option>Clean</option>
-              </select>
-            </div>
-            <button
-              onClick={() => onAdminAssign(room)}
-              className={`${baseBtn} bg-gray-700 py-2 hover:bg-gray-800`}
-            >
-              <UserGroupIcon className="h-4 w-4" />
-              Manage Staff
-            </button>
-          </div>
-        );
-
       case "Housekeeping":
         if (assignment.status === "Dirty")
           return (
@@ -313,4 +281,4 @@ const RoomCard = ({
   );
 };
 
-export default RoomCard;
+export default InspectorRoomCard;

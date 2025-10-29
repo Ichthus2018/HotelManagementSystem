@@ -1,24 +1,32 @@
+// src/hooks/Admin/useRoomActions.js
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 import supabase from "../../services/supabaseClient";
 import { SWR_KEY_ROOMS_DATA } from "../../pages/admin/RoomAssignments";
+import { useUser } from "../useUser";
 
 export const useRoomActions = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { mutate } = useSWRConfig();
+  const { user } = useUser();
+
+  const revalidateRoomsData = () => {
+    mutate((key) => Array.isArray(key) && key[0] === SWR_KEY_ROOMS_DATA);
+  };
 
   const assignStaff = async (assignmentData, options = {}) => {
-    const { roomId, housekeepers, inspector } = assignmentData;
+    // ✅ FIXED: Destructure 'status' from the incoming data
+    const { roomId, housekeepers, inspector, status } = assignmentData;
     setIsProcessing(true);
 
-    console.log("🔄 Starting assignStaff with:", {
-      roomId,
-      housekeepers,
-      inspector,
-    });
-
     try {
-      // Use upsert to handle both insert and update in one operation
+      console.log("🔄 Starting assignStaff with:", {
+        roomId,
+        housekeepers,
+        inspector,
+        status,
+      });
+
       const { data, error } = await supabase
         .from("room_assignments")
         .upsert(
@@ -26,46 +34,27 @@ export const useRoomActions = () => {
             room_id: roomId,
             housekeepers: housekeepers || [],
             inspector: inspector || null,
+            assigned_by: user?.id,
+            // ✅ FIXED: Use the passed status, with a fallback
             status:
-              housekeepers && housekeepers.length > 0
+              status ||
+              (housekeepers && housekeepers.length > 0
                 ? "For Cleaning"
-                : "Dirty",
+                : "Dirty"),
             updated_at: new Date().toISOString(),
           },
-          {
-            onConflict: "room_id",
-            ignoreDuplicates: false,
-          }
+          { onConflict: "room_id", ignoreDuplicates: false }
         )
         .select();
 
-      if (error) {
-        console.error("❌ Database error:", error);
-        throw new Error(`Failed to save assignment: ${error.message}`);
-      }
-
-      console.log("✅ Assignment saved successfully:", data);
-
-      // Update room status if housekeepers are assigned
-      if (housekeepers && housekeepers.length > 0) {
-        await supabase
-          .from("rooms")
-          .update({
-            status: "occupied",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", roomId);
-      }
-
-      // Force refresh the data
-      mutate(SWR_KEY_ROOMS_DATA);
-
-      console.log("✅ Successfully completed assignStaff");
+      if (error) throw new Error(`Failed to save assignment: ${error.message}`);
+      console.log("✅ Assignment saved:", data);
+      revalidateRoomsData();
       options.onSuccess?.();
     } catch (error) {
-      console.error("❌ Error in assignStaff:", error);
+      console.error("❌ assignStaff error:", error);
       options.onError?.(error);
-      throw error; // Re-throw to handle in component
+      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -75,24 +64,18 @@ export const useRoomActions = () => {
     setIsProcessing(true);
     try {
       console.log("🔄 Starting tagSelf with:", { userId, roomId });
-
-      // Use the RPC function we created
-      const { data, error } = await supabase.rpc("add_housekeeper_to_room", {
+      const { error } = await supabase.rpc("add_housekeeper_to_room", {
         p_room_id: roomId,
         p_housekeeper_id: userId,
       });
 
-      if (error) {
-        console.error("❌ RPC error:", error);
-        throw new Error(`Failed to assign yourself: ${error.message}`);
-      }
+      if (error) throw new Error(`Failed to assign yourself: ${error.message}`);
 
-      console.log("✅ tagSelf RPC result:", data);
-
-      mutate(SWR_KEY_ROOMS_DATA);
+      console.log("✅ tagSelf successful");
+      revalidateRoomsData();
       options.onSuccess?.();
     } catch (error) {
-      console.error("❌ Error in tagSelf:", error);
+      console.error("❌ tagSelf error:", error);
       options.onError?.(error);
       throw error;
     } finally {
@@ -100,28 +83,34 @@ export const useRoomActions = () => {
     }
   };
 
+  // =================================================================
+  // === THIS IS THE CORE FIX FOR THE ROOM CARD STATUS DROPDOWN ===
+  // =================================================================
   const updateStatus = async ({ roomId, newStatus }, options = {}) => {
     setIsProcessing(true);
     try {
-      console.log("🔄 Starting updateStatus with:", { roomId, newStatus });
+      console.log("🔄 Updating status via upsert:", { roomId, newStatus });
 
-      // Use the RPC function for status updates
-      const { data, error } = await supabase.rpc("update_room_status", {
-        p_room_id: roomId,
-        p_new_status: newStatus,
-      });
+      const { error } = await supabase
+        .from("room_assignments")
+        .upsert(
+          {
+            room_id: roomId,
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+            assigned_by: user?.id, // Also track who changed the status
+          },
+          { onConflict: "room_id", ignoreDuplicates: false }
+        )
+        .select();
 
-      if (error) {
-        console.error("❌ Status update error:", error);
-        throw new Error(`Failed to update status: ${error.message}`);
-      }
+      if (error) throw new Error(`Failed to update status: ${error.message}`);
 
-      console.log("✅ Status updated successfully:", data);
-
-      mutate(SWR_KEY_ROOMS_DATA);
+      console.log("✅ Status updated successfully");
+      revalidateRoomsData();
       options.onSuccess?.();
     } catch (error) {
-      console.error("❌ Error updating status:", error);
+      console.error("❌ updateStatus error:", error);
       options.onError?.(error);
       throw error;
     } finally {
