@@ -1,18 +1,8 @@
-import { useMemo } from "react";
 import { FaEdit } from "react-icons/fa";
 
 const ROLES = ["Housekeeping", "Inspector", "Admin"];
 
-const WorkflowRoleTaggingDisplay = ({
-  rolePermissions,
-  sidebarPermissions,
-  onEdit, // Function to open the modal
-}) => {
-  // Create a lookup map for faster name retrieval
-  const permissionNameMap = useMemo(() => {
-    return new Map(sidebarPermissions.map((p) => [p.id, p.role_name]));
-  }, [sidebarPermissions]);
-
+const WorkflowRoleTaggingDisplay = ({ sidebarPermissions, onEdit }) => {
   return (
     <div className="p-6 border-t mt-6">
       <h3 className="text-lg font-medium text-gray-900">
@@ -24,11 +14,9 @@ const WorkflowRoleTaggingDisplay = ({
 
       <div className="mt-6 space-y-3">
         {ROLES.map((role) => {
-          const roleData = rolePermissions.find((p) => p.role_name === role);
-          const permissionIds = roleData?.sidebar_permission_ids || [];
-          const permissionNames = permissionIds
-            .map((id) => permissionNameMap.get(id))
-            .filter(Boolean);
+          const assignedPermissions = sidebarPermissions.filter(
+            (p) => p.allowed_roles && p.allowed_roles.includes(role)
+          );
 
           return (
             <div
@@ -38,13 +26,14 @@ const WorkflowRoleTaggingDisplay = ({
               <div className="flex-1">
                 <span className="font-semibold text-gray-800">{role}</span>
                 <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-2">
-                  {permissionNames.length > 0 ? (
-                    permissionNames.map((name) => (
+                  {assignedPermissions.length > 0 ? (
+                    assignedPermissions.map((perm) => (
                       <span
-                        key={name}
+                        key={perm.id}
                         className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
                       >
-                        {name}
+                        {/* ✅ FIX: Changed from permission_name to role_name to match schema */}
+                        {perm.role_name}
                       </span>
                     ))
                   ) : (

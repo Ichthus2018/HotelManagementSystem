@@ -12,7 +12,7 @@ import {
 import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 
 const getStockStatus = (item) => {
   // Available stock is either the direct value or the calculated bundle value

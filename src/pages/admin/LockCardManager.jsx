@@ -5,7 +5,7 @@ import ReactPaginate from "react-paginate";
 // UI Components
 import PageHeader from "../../components/ui/common/PageHeader";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 import SearchInput from "../../components/ui/common/SearchInput"; // Added search
 import {
   LockClosedIcon,

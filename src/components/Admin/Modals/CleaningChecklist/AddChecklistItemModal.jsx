@@ -1,5 +1,3 @@
-// src/components/Modals/AddChecklistItemModal.js
-
 import { useState, Fragment } from "react";
 import {
   Dialog,
@@ -51,8 +49,6 @@ const AddChecklistItemModal = ({ isOpen, onClose, onSuccess, roomAreaId }) => {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
-        {/* Same modal structure as AddRoomAreaModal... */}
-        {/* ... The form inside DialogPanel will be different */}
         <TransitionChild
           as={Fragment}
           enter="ease-out duration-300"

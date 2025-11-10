@@ -7,10 +7,10 @@ import {
   ArrowUturnLeftIcon,
   ClockIcon,
   ExclamationTriangleIcon,
-  ClipboardDocumentCheckIcon, // New icon
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useRoomActions } from "../../../../hooks/Admin/useRoomActions";
-import CleaningSessionModal from "./CleaningSessionModal"; // Import the new modal
+import CleaningSessionModal from "./CleaningSessionModal";
 
 const statusConfig = {
   Dirty: {
@@ -39,35 +39,11 @@ const statusConfig = {
   },
 };
 
-const RoomCard = ({
-  room,
-  currentUser,
-  onAdminAssign,
-  inspectionWorkflow,
-  staffData,
-}) => {
-  const { tagSelf, updateStatus, isProcessing } = useRoomActions();
+const RoomCard = ({ room, currentUser, onAdminAssign, staffData }) => {
+  const { updateStatus, isProcessing } = useRoomActions();
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
-
-  let assignment;
-  if (
-    Array.isArray(room.room_assignments) &&
-    room.room_assignments.length > 0
-  ) {
-    assignment = room.room_assignments[0];
-  } else if (
-    room.room_assignments &&
-    typeof room.room_assignments === "object"
-  ) {
-    assignment = room.room_assignments;
-  } else {
-    assignment = {
-      status: "Dirty",
-      housekeepers: [],
-      inspector: null,
-      updated_at: null,
-    };
-  }
+  const assignment = room;
+  // console.log(assignment); // 🔄 FIX: Removed console.log for cleanup.
 
   const config = statusConfig[assignment.status] || statusConfig.Dirty;
   const StatusIcon = config.icon;
@@ -109,9 +85,11 @@ const RoomCard = ({
               <span className="font-semibold text-gray-800">
                 {hk.first_name} {hk.last_name}
               </span>
-              {hk.workflow_role && (
+              {hk.workflow_role && Array.isArray(hk.workflow_role) && (
                 <span className="text-[10px] text-gray-500 capitalize">
-                  {hk.workflow_role.toLowerCase()}
+                  {hk.workflow_role
+                    .map((role) => role.toLowerCase())
+                    .join(", ")}
                 </span>
               )}
             </div>
@@ -122,6 +100,12 @@ const RoomCard = ({
   };
 
   const renderInspector = () => {
+    if (!assignment.requires_inspection) {
+      return (
+        <span className="text-xs font-medium text-gray-500">Not Required</span>
+      );
+    }
+
     const insp = getInspectorDetails();
     return insp ? (
       <span className="font-semibold text-gray-800 text-xs">
@@ -137,115 +121,178 @@ const RoomCard = ({
 
     const baseBtn =
       "w-full flex items-center justify-center gap-1.5 rounded-md text-xs font-semibold text-white shadow transition-all duration-150";
+    const userRoles = currentUser.workflow_role || [];
 
-    switch (currentUser.workflow_role) {
-      case "Admin":
-        return (
-          <div className="space-y-2">
-            <div>
-              <label
-                htmlFor={`status-select-${room.id}`}
-                className="block text-[10px] text-gray-500 mb-1"
-              >
-                Change Status
-              </label>
-              <select
-                id={`status-select-${room.id}`}
-                value={assignment.status}
-                onChange={(e) =>
-                  updateStatus({ roomId: room.id, newStatus: e.target.value })
-                }
-                disabled={isProcessing}
-                className="w-full rounded-lg border-gray-200 bg-gray-50 text-sm text-gray-700 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-300 disabled:bg-gray-100 transition-all duration-150"
-              >
-                <option>Dirty</option>
-                <option>For Cleaning</option>
-                <option>For Inspection</option>
-                <option>Clean</option>
-              </select>
-            </div>
-            <button
-              onClick={() => onAdminAssign(room)}
-              className={`${baseBtn} bg-gray-700 py-2 hover:bg-gray-800`}
-            >
-              <UserGroupIcon className="h-4 w-4" />
-              Manage Staff
-            </button>
-          </div>
-        );
+    const isHousekeeper = userRoles.includes("Housekeeping");
+    const isInspector = userRoles.includes("Inspector");
+    const isRoomUnassigned =
+      !assignment.housekeepers || assignment.housekeepers.length === 0;
 
-      case "Housekeeping":
-        if (assignment.status === "Dirty")
-          return (
-            <button
-              onClick={() =>
-                tagSelf({ userId: currentUser.id, roomId: room.id })
-              }
-              disabled={isProcessing}
-              className={`${baseBtn} bg-green-600 py-2 hover:bg-green-700 disabled:opacity-60`}
-            >
-              <SparklesIcon className="h-4 w-4" />
-              {isProcessing ? "Assigning..." : "Start Cleaning"}
-            </button>
-          );
-
-        if (assignment.status === "For Cleaning" && isAssignedHousekeeper) {
-          return (
-            <button
-              onClick={() => setIsCleaningModalOpen(true)}
-              disabled={isProcessing}
-              className={`${baseBtn} bg-blue-600 hover:bg-blue-700 py-2 disabled:opacity-60`}
-            >
-              <ClipboardDocumentCheckIcon className="h-4 w-4" />
-              Complete Checklist
-            </button>
-          );
-        }
-        return (
-          <p className="text-center text-[11px] text-gray-500">
-            No actions available.
-          </p>
-        );
-
-      case "Inspector":
-        if (assignment.status === "For Inspection" && isAssignedInspector)
-          return (
-            <div className="flex gap-2">
+    switch (assignment.status) {
+      case "Dirty":
+        if (isHousekeeper) {
+          if (isAssignedHousekeeper) {
+            return (
               <button
                 onClick={() =>
                   updateStatus({ roomId: room.id, newStatus: "For Cleaning" })
                 }
                 disabled={isProcessing}
-                className={`${baseBtn} flex-1 bg-red-600 hover:bg-red-700 py-2`}
+                className={`${baseBtn} bg-green-600 py-2 hover:bg-green-700 disabled:opacity-60`}
               >
-                <ArrowUturnLeftIcon className="h-4 w-4" />
-                Reject
+                <SparklesIcon className="h-4 w-4" />
+                {isProcessing ? "Starting..." : "Start Cleaning"}
               </button>
-              <button
-                onClick={() =>
-                  updateStatus({ roomId: room.id, newStatus: "Clean" })
-                }
-                disabled={isProcessing}
-                className={`${baseBtn} flex-1 bg-emerald-600 hover:bg-emerald-700 py-2`}
-              >
-                <CheckCircleIcon className="h-4 w-4" />
-                Approve
-              </button>
-            </div>
+            );
+          } else if (isRoomUnassigned) {
+            return (
+              <p className="text-center text-[11px] text-gray-500">
+                Room is unassigned.
+              </p>
+            );
+          } else {
+            return (
+              <p className="text-center text-[11px] text-gray-500">
+                Assigned to another housekeeper.
+              </p>
+            );
+          }
+        }
+        if (isInspector) {
+          return (
+            <p className="text-center text-[11px] text-gray-500">
+              Room is dirty.
+            </p>
           );
-        return (
-          <p className="text-center text-[11px] text-gray-500">
-            Not assigned to you.
-          </p>
-        );
+        }
+        break;
 
-      default:
-        return (
-          <p className="text-center text-[11px] text-gray-500">
-            No actions available.
-          </p>
-        );
+      case "For Cleaning":
+        if (isHousekeeper) {
+          if (isAssignedHousekeeper) {
+            return (
+              <button
+                onClick={() => setIsCleaningModalOpen(true)}
+                disabled={isProcessing}
+                className={`${baseBtn} bg-blue-600 hover:bg-blue-700 py-2 disabled:opacity-60`}
+              >
+                <ClipboardDocumentCheckIcon className="h-4 w-4" />
+                Complete Checklist
+              </button>
+            );
+          } else {
+            return (
+              <p className="text-center text-[11px] text-gray-500">
+                Not assigned to you.
+              </p>
+            );
+          }
+        }
+        if (isInspector) {
+          return (
+            <p className="text-center text-[11px] text-gray-500">
+              Waiting for inspection.
+            </p>
+          );
+        }
+        break;
+
+      case "For Inspection":
+        if (isInspector) {
+          if (isAssignedInspector) {
+            return (
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    updateStatus({ roomId: room.id, newStatus: "For Cleaning" })
+                  }
+                  disabled={isProcessing}
+                  className={`${baseBtn} flex-1 bg-red-600 hover:bg-red-700 py-2`}
+                >
+                  <ArrowUturnLeftIcon className="h-4 w-4" />
+                  Reject
+                </button>
+                <button
+                  onClick={() =>
+                    updateStatus({ roomId: room.id, newStatus: "Clean" })
+                  }
+                  disabled={isProcessing}
+                  className={`${baseBtn} flex-1 bg-emerald-600 hover:bg-emerald-700 py-2`}
+                >
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Approve
+                </button>
+              </div>
+            );
+          } else {
+            return (
+              <p className="text-center text-[11px] text-gray-500">
+                Not assigned to you.
+              </p>
+            );
+          }
+        }
+        if (isHousekeeper) {
+          return (
+            <p className="text-center text-[11px] text-gray-500">
+              Pending inspection.
+            </p>
+          );
+        }
+        break;
+
+      case "Clean":
+        if (isHousekeeper || isInspector) {
+          return (
+            <p className="text-center text-[11px] text-gray-500">
+              Room is clean and ready.
+            </p>
+          );
+        }
+        break;
     }
+
+    if (currentUser.admin || currentUser.sidebar_role === "Admin") {
+      return (
+        <div className="space-y-2">
+          <div>
+            <label
+              htmlFor={`status-select-${room.id}`}
+              className="block text-[10px] text-gray-500 mb-1"
+            >
+              Change Status
+            </label>
+            <select
+              id={`status-select-${room.id}`}
+              value={assignment.status}
+              onChange={(e) =>
+                updateStatus({ roomId: room.id, newStatus: e.target.value })
+              }
+              disabled={isProcessing}
+              className="w-full rounded-lg border-gray-200 bg-gray-50 text-sm text-gray-700 shadow-inner focus:border-blue-500 focus:ring-2 focus:ring-blue-300 disabled:bg-gray-100 transition-all duration-150"
+            >
+              <option>Dirty</option>
+              <option>For Cleaning</option>
+              <option>For Inspection</option>
+              <option>Clean</option>
+            </select>
+          </div>
+          <button
+            onClick={() => onAdminAssign(room)}
+            className={`${baseBtn} bg-gray-700 py-2 hover:bg-gray-800`}
+          >
+            <UserGroupIcon className="h-4 w-4" />
+            Manage Staff
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <p className="text-center text-[11px] text-gray-500">
+        No actions available.
+      </p>
+    );
   };
 
   return (
@@ -255,14 +302,16 @@ const RoomCard = ({
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-lg font-bold text-gray-800">
-                Room {room.room_number}
+                {room.room_number}
               </h3>
+              {/* 🔄 FIX: Changed room.room_types?.title to room.room_type_title */}
               <p className="text-xs text-gray-600">
-                {room.room_types?.title || "Standard Room"}
+                {room.room_type_title || "Standard Room"}
               </p>
-              {room.locations?.name && (
+              {/* 🔄 FIX: Changed room.locations?.name to room.location_name */}
+              {room.location_name && (
                 <p className="text-[10px] text-gray-500">
-                  {room.locations.name}
+                  {room.location_name}
                 </p>
               )}
             </div>
@@ -307,7 +356,7 @@ const RoomCard = ({
         onClose={() => setIsCleaningModalOpen(false)}
         room={room}
         updateStatus={updateStatus}
-        inspectionWorkflow={inspectionWorkflow}
+        inspectionWorkflow={assignment.requires_inspection}
       />
     </>
   );

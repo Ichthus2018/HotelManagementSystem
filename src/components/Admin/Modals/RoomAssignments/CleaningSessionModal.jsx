@@ -14,7 +14,7 @@ import {
   IoMdCamera,
 } from "react-icons/io";
 import { ShieldCheckIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import Loader from "../../../ui/common/loader";
+import Loader from "../../../ui/common/Loader";
 
 const CleaningSessionModal = ({
   isOpen,
@@ -224,12 +224,22 @@ const CleaningSessionModal = ({
     );
   };
 
+  const isInspectorAssigned = !!room?.inspector;
+
   const finalActionText = inspectionWorkflow
-    ? "Request Inspection"
+    ? isInspectorAssigned
+      ? "Request Inspection"
+      : "Awaiting Inspector"
     : "Mark as Clean";
+
   const FinalActionIcon = inspectionWorkflow
     ? ShieldCheckIcon
     : CheckCircleIcon;
+
+  // The button is disabled if the checklist is incomplete,
+  // OR if an inspection is required but no inspector is assigned yet.
+  const isFinalActionDisabled =
+    !isChecklistComplete || (inspectionWorkflow && !isInspectorAssigned);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -288,7 +298,7 @@ const CleaningSessionModal = ({
                   <button
                     type="button"
                     onClick={handleRequestInspection}
-                    disabled={!isChecklistComplete}
+                    disabled={isFinalActionDisabled}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <FinalActionIcon className="h-5 w-5" />

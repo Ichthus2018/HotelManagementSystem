@@ -2,7 +2,7 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useUser } from "../hooks/useUser"; // <-- CHANGED
-import Loader from "../components/ui/common/loader";
+import Loader from "../components/ui/common/Loader";
 
 const AdminRoutes = () => {
   const { user, isLoading } = useUser(); // <-- CHANGED

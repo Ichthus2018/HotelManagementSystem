@@ -14,7 +14,7 @@ import {
   IoMdCamera,
 } from "react-icons/io";
 import { ShieldCheckIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import Loader from "../../../ui/common/loader";
+import Loader from "../../../ui/common/Loader";
 
 const CleaningSessionModal = ({
   isOpen,
@@ -42,8 +42,6 @@ const CleaningSessionModal = ({
         setError(null);
         setIssueReported(false); // Reset issue status on open
         try {
-          // NOTE: This fetches a generic checklist. In a real app, you'd fetch
-          // a checklist specific to room.room_type_id or room.id.
           const { data: areas, error: areasError } = await supabase
             .from("room_areas")
             .select("*, checklist_items(*)")

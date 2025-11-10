@@ -1,4 +1,4 @@
-import React from "react";
+// src/pages/Inspector.js
 
 import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
@@ -10,181 +10,139 @@ import { ArrowsUpDownIcon } from "@heroicons/react/24/solid";
 import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 import InspectorRoomCard from "../../components/Admin/Modals/Inspector/InspectorRoomCard";
-import SortLocationsModal from "../../components/Admin/Modals/RoomAssignments/SortLocationsModal";
+import SortLocationsModal from "../../components/Admin/Modals/Inspector/SortLocationsModal";
 
 // Constants
-export const SWR_KEY_ROOMS_DATA = "rooms_data";
-const LOCATION_ORDER_STORAGE_KEY = "user_location_sort_order";
+export const SWR_KEY_INSPECTOR_ROOMS = "inspector_rooms_data";
+const LOCATION_ORDER_STORAGE_KEY = "inspector_location_sort_order";
 
-const fetchRoomsData = async ([_key, currentUser, searchTerm]) => {
+// --- REFACTORED DATA FETCHER ---
+// This fetcher is now focused only on what an Inspector needs to see.
+const fetchInspectorRooms = async ([_key, currentUser, searchTerm]) => {
   try {
-    const { data: settings } = await supabase
-      .from("company_settings")
-      .select("setting_value")
-      .eq("setting_name", "inspection_workflow")
-      .single();
-    const inspectionWorkflow = settings?.setting_value !== "false";
+    // 1. We start with the performant search view.
+    let query = supabase.from("room_search_view").select("*");
 
-    let staffData = { housekeepers: [], inspectors: [] };
-    if (currentUser.admin || currentUser.sidebar_role === "Admin") {
-      const { data: housekeepers } = await supabase
-        .from("user_roles_view")
-        .select(`id, first_name, last_name, email, workflow_role`)
-        .eq("workflow_role", "Housekeeping");
+    // 2. An inspector only sees rooms they are assigned to. This is the primary filter.
+    if (!currentUser?.id) return { rooms: [] }; // Return empty if no user
+    query = query.eq("inspector", currentUser.id);
 
-      const { data: inspectors } = await supabase
-        .from("user_roles_view")
-        .select(`id, first_name, last_name, email, workflow_role`)
-        .eq("workflow_role", "Inspector");
-
-      staffData.housekeepers = housekeepers || [];
-      staffData.inspectors = inspectors || [];
-    }
-
-    // Main query to get ALL rooms
-    let query = supabase.from("rooms").select(
-      `
-        id, room_number, status,
-        room_types(title, base_rate),
-        locations(name),
-        room_assignments!left(
-          status, housekeepers, inspector, updated_at,
-          users!room_assignments_inspector_fkey(first_name, last_name)
-        )
-      `
-    );
-
+    // 3. The search logic is applied on top of the primary filter.
     if (searchTerm) {
+      const pattern = `%${searchTerm}%`;
       query = query.or(
-        `room_number.ilike.%${searchTerm}%,room_types.title.ilike.%${searchTerm}%`
+        `room_number.ilike.${pattern},room_type_title.ilike.${pattern},location_name.ilike.${pattern}`
       );
     }
 
-    // Non-admin filtering logic
-    if (!currentUser.admin && currentUser.sidebar_role !== "Admin") {
-      switch (currentUser.workflow_role) {
-        case "Housekeeping":
-          query = query.or(
-            `room_assignments.status.eq.Dirty,room_assignments.housekeepers.cs.{"${currentUser.id}"}`
-          );
-          break;
-        case "Inspector":
-          query = query.eq("room_assignments.inspector", currentUser.id);
-          break;
-        case "Housekeeping Manager":
-          query = query.not("room_assignments.housekeepers", "is", null);
-          break;
-      }
+    const { data: rooms, error } = await query.order("room_number", {
+      ascending: true,
+    });
+
+    if (error) {
+      console.error("Supabase inspector rooms error:", error);
+      throw error;
     }
 
-    // Fetch all rooms without pagination
-    const { data: rooms, error: roomsError } = await query.order(
-      "room_number",
-      { ascending: true }
-    );
+    if (!rooms || rooms.length === 0) {
+      return { rooms: [], timestamp: new Date().toISOString() };
+    }
 
-    if (roomsError) throw roomsError;
-
-    // Fetch housekeeper details for assigned rooms
+    // 4. Hydrate with housekeeper details (still needed for the card).
     const housekeeperIds = new Set();
     rooms.forEach((room) => {
-      const assignment = room.room_assignments?.[0];
-      if (assignment?.housekeepers?.length > 0) {
-        assignment.housekeepers.forEach((id) => housekeeperIds.add(id));
+      if (room.housekeepers) {
+        room.housekeepers.forEach((id) => housekeeperIds.add(id));
       }
     });
 
-    let housekeeperDetailsMap = new Map();
+    let userDetailsMap = new Map();
     if (housekeeperIds.size > 0) {
-      const { data: usersData } = await supabase
-        .from("user_roles_view")
+      const { data: users, error: userError } = await supabase
+        .from("users")
         .select("id, first_name, last_name")
         .in("id", Array.from(housekeeperIds));
-      if (usersData) {
-        usersData.forEach((user) => housekeeperDetailsMap.set(user.id, user));
+
+      if (userError) {
+        console.error("Error fetching user details:", userError);
+      } else if (users) {
+        users.forEach((user) => userDetailsMap.set(user.id, user));
       }
     }
 
-    const roomsWithDetails = rooms.map((room) => {
-      const assignment = room.room_assignments?.[0];
-      if (assignment?.housekeepers?.length > 0) {
-        assignment.housekeeper_details = assignment.housekeepers
-          .map((id) => housekeeperDetailsMap.get(id))
-          .filter(Boolean);
-      } else if (assignment) {
-        assignment.housekeeper_details = [];
-      }
-      return room;
-    });
+    const roomsWithDetails = rooms.map((room) => ({
+      ...room,
+      housekeeper_details:
+        room.housekeepers
+          ?.map((id) => userDetailsMap.get(id))
+          .filter(Boolean) || [],
+    }));
 
     return {
-      rooms: roomsWithDetails || [],
-      staffData,
-      inspectionWorkflow,
+      rooms: roomsWithDetails,
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error("Error fetching rooms data:", error);
+    console.error("Error fetching inspector rooms data:", error);
     throw error;
   }
 };
 
 const Inspector = () => {
-  // Modal states
+  // --- CLEANUP: Removed admin-specific state ---
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
-
-  // Data fetching and filtering state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearchTerm, setActiveSearchTerm] = useState("");
   const { user: currentUser, isLoading: isUserLoading } = useUser();
-
-  // State for managing location order
   const [locationOrder, setLocationOrder] = useState([]);
 
+  // --- CLEANUP: Removed useStaffByRole hook ---
+
   const swrKey = currentUser
-    ? [SWR_KEY_ROOMS_DATA, currentUser, searchTerm]
+    ? [SWR_KEY_INSPECTOR_ROOMS, currentUser, activeSearchTerm]
     : null;
 
-  const { data, error, isLoading, mutate } = useSWR(swrKey, fetchRoomsData, {
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-    dedupingInterval: 2000,
-  });
+  const { data, error, isLoading, mutate } = useSWR(
+    swrKey,
+    fetchInspectorRooms,
+    {
+      revalidateOnFocus: true,
+    }
+  );
 
-  // Database changes subscription
+  const allRooms = data?.rooms || [];
+
+  // Subscription logic remains valuable for real-time updates
   useEffect(() => {
+    if (!currentUser) return;
     const channel = supabase
-      .channel("room_assignments_and_rooms_changes")
+      .channel("inspector_room_changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "room_assignments" },
-        () => mutate()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rooms" },
+        {
+          event: "*",
+          schema: "public",
+          table: "room_assignments",
+          filter: `inspector=eq.${currentUser.id}`, // Only listen for changes to my rooms
+        },
         () => mutate()
       )
       .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [mutate, currentUser]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [mutate]);
-
-  const allRooms = data?.rooms || [];
-  const staffData = data?.staffData;
-  const inspectionWorkflow = data?.inspectionWorkflow ?? true;
-
-  // --- Grouping and Sorting Logic ---
-
+  // Grouping and Sorting Logic (remains the same)
   const uniqueLocations = useMemo(() => {
     if (!allRooms.length) return [];
     const locationSet = new Set(
-      allRooms.map((room) => room.locations?.name || "Uncategorized")
+      allRooms.map((room) => room.location_name || "Uncategorized")
     );
     return Array.from(locationSet).sort();
   }, [allRooms]);
+
+  const locationOrderDependency = JSON.stringify(uniqueLocations);
 
   useEffect(() => {
     try {
@@ -205,20 +163,16 @@ const Inspector = () => {
       console.error("Failed to parse location order from localStorage", e);
       setLocationOrder(uniqueLocations);
     }
-  }, [uniqueLocations]);
+  }, [locationOrderDependency]);
 
   const groupedAndSortedRooms = useMemo(() => {
     if (!allRooms.length || !locationOrder.length) return [];
-
     const roomsByLocation = allRooms.reduce((acc, room) => {
-      const locationName = room.locations?.name || "Uncategorized";
-      if (!acc[locationName]) {
-        acc[locationName] = [];
-      }
+      const locationName = room.location_name || "Uncategorized";
+      if (!acc[locationName]) acc[locationName] = [];
       acc[locationName].push(room);
       return acc;
     }, {});
-
     return locationOrder
       .map((locationName) => ({
         location: locationName,
@@ -232,11 +186,16 @@ const Inspector = () => {
     localStorage.setItem(LOCATION_ORDER_STORAGE_KEY, JSON.stringify(newOrder));
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    setActiveSearchTerm(searchInput);
   };
 
-  // RENDER LOGIC
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setActiveSearchTerm("");
+  };
+
   const renderContent = () => {
     if (isUserLoading || isLoading) {
       return (
@@ -249,16 +208,14 @@ const Inspector = () => {
     if (error) {
       return (
         <div className="text-center p-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto">
-            <h3 className="text-red-800 font-semibold">Error Loading Rooms</h3>
-            <p className="text-red-600 text-sm mt-1">{error.message}</p>
-            <button
-              onClick={() => mutate()}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+          <h3 className="text-red-800 font-semibold">Error Loading Rooms</h3>
+          <p className="text-red-600 text-sm mt-1">{error.message}</p>
+          <button
+            onClick={() => mutate()}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md"
+          >
+            Retry
+          </button>
         </div>
       );
     }
@@ -266,18 +223,15 @@ const Inspector = () => {
     if (groupedAndSortedRooms.length === 0) {
       return (
         <EmptyState
-          title="No Rooms Found"
+          title="No Rooms to Inspect"
           description={
-            searchTerm
-              ? "No rooms match your current search."
-              : "No rooms are available at this time."
+            activeSearchTerm
+              ? "No rooms match your search."
+              : "There are no rooms assigned to you for inspection right now."
           }
           action={
-            searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
+            activeSearchTerm && (
+              <button onClick={handleClearSearch} className="text-blue-600">
                 Clear search
               </button>
             )
@@ -290,7 +244,7 @@ const Inspector = () => {
       <div className="p-4 md:p-6 space-y-8">
         {groupedAndSortedRooms.map(({ location, rooms }) => (
           <div key={location}>
-            <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 border-b-2 pb-2 mb-4">
               {location}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -299,8 +253,6 @@ const Inspector = () => {
                   key={room.id}
                   room={room}
                   currentUser={currentUser}
-                  inspectionWorkflow={inspectionWorkflow}
-                  staffData={staffData}
                 />
               ))}
             </div>
@@ -314,33 +266,34 @@ const Inspector = () => {
     <>
       <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
         <PageHeader
-          title="Inspector"
-          description="View all rooms grouped by location and Inspector assignments."
+          title="My Inspection Queue"
+          description="View and manage rooms assigned to you for inspection."
         />
-
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <SearchInput
-              searchTerm={searchTerm}
-              setSearchTerm={handleSearch}
-              placeholder="Search by room number or type..."
+              searchTerm={searchInput}
+              setSearchTerm={setSearchInput}
+              onSearch={handleSearchSubmit}
+              onClear={handleClearSearch}
+              activeSearchTerm={activeSearchTerm}
+              placeholder="Search by room number, type, or location..."
               className="flex-1 min-w-[250px]"
             />
             <button
               onClick={() => setIsSortModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-gray-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-gray-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
             >
               <ArrowsUpDownIcon className="h-5 w-5" />
               Sort Locations
             </button>
           </div>
         </div>
-
         <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden">
           {renderContent()}
         </div>
       </div>
-
+      {/* --- CLEANUP: Removed TagRoomRoleModal --- */}
       <SortLocationsModal
         isOpen={isSortModalOpen}
         onClose={() => setIsSortModalOpen(false)}
@@ -350,5 +303,4 @@ const Inspector = () => {
     </>
   );
 };
-
 export default Inspector;

@@ -3,28 +3,53 @@ import useSWR from "swr";
 import { useSession } from "../context/SessionContext";
 
 const fetcher = async ([_key, userId, supabase]) => {
-  const { data, error, status } = await supabase
-    .from("user_roles_view")
+  const {
+    data: rawData,
+    error,
+    status,
+  } = await supabase
+    .from("users")
     .select(
       `
-      id, 
-      email, 
-      admin, 
-      first_name, 
-      last_name, 
-      sidebar_role, 
-      allowed_routes,
-      workflow_role 
+      id,
+      email,
+      admin,
+      first_name,
+      last_name,
+      sidebar_permissions (
+        role_name,
+        allowed_routes,
+        allowed_roles
+      )
     `
     )
     .eq("id", userId)
     .single();
 
   if (error && status !== 406) {
-    console.error("Error fetching user profile from view:", error);
+    console.error("Error fetching user profile:", error);
     throw error;
   }
-  return data;
+
+  if (!rawData) {
+    return null;
+  }
+
+  const { sidebar_permissions, ...userProfile } = rawData;
+
+  const user = {
+    ...userProfile,
+    sidebar_role: sidebar_permissions?.role_name,
+    allowed_routes: sidebar_permissions?.allowed_routes || [],
+    // Convert to array and ensure it's always an array
+    workflow_role: Array.isArray(sidebar_permissions?.allowed_roles)
+      ? sidebar_permissions.allowed_roles
+      : sidebar_permissions?.allowed_roles
+      ? [sidebar_permissions.allowed_roles]
+      : [],
+  };
+
+  return user;
 };
 
 export const useUser = () => {

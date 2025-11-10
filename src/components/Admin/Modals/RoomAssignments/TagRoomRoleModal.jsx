@@ -7,6 +7,7 @@ import {
   DialogTitle,
   Transition,
   TransitionChild,
+  Switch, // ✨ NEW: Import Switch
 } from "@headlessui/react";
 import {
   IoIosCloseCircleOutline,
@@ -15,8 +16,26 @@ import {
   IoIosEye,
   IoIosSearch,
   IoIosWarning,
+  IoIosEyeOff, // ✨ NEW: Import EyeOff icon
 } from "react-icons/io";
 import { useRoomActions } from "../../../../hooks/Admin/useRoomActions";
+
+// ✨ NEW: A reusable Toggle Switch component
+const ToggleSwitch = ({ enabled, setEnabled }) => (
+  <Switch
+    checked={enabled}
+    onChange={setEnabled}
+    className={`${
+      enabled ? "bg-blue-600" : "bg-gray-200"
+    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+  >
+    <span
+      className={`${
+        enabled ? "translate-x-6" : "translate-x-1"
+      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+    />
+  </Switch>
+);
 
 const TagRoomRoleModal = ({
   isOpen,
@@ -29,24 +48,37 @@ const TagRoomRoleModal = ({
 }) => {
   const [selectedHousekeepers, setSelectedHousekeepers] = useState([]);
   const [selectedInspector, setSelectedInspector] = useState("");
+  // ✨ NEW: State for the inspection toggle
+  const [requiresInspection, setRequiresInspection] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [errors, setErrors] = useState({});
   const { assignStaff, isProcessing } = useRoomActions();
 
-  // Reset form when modal opens/closes or room changes
   useEffect(() => {
     if (roomToTag && isOpen) {
       const assignment = roomToTag.room_assignments?.[0];
       setSelectedHousekeepers(assignment?.housekeepers || []);
       setSelectedInspector(assignment?.inspector || "");
+      // ✨ NEW: Set toggle state from existing assignment data, default to true
+      setRequiresInspection(assignment?.requires_inspection ?? true);
       setErrors({});
     } else {
+      // Reset all state on close
       setSelectedHousekeepers([]);
       setSelectedInspector("");
+      setRequiresInspection(true);
       setSearchTerm("");
       setErrors({});
     }
   }, [roomToTag, isOpen]);
+
+  // ✨ NEW: Effect to clear inspector when toggle is off
+  useEffect(() => {
+    if (!requiresInspection) {
+      setSelectedInspector("");
+      setErrors((prev) => ({ ...prev, inspector: undefined }));
+    }
+  }, [requiresInspection]);
 
   // Memoized filtered housekeepers for better performance
   const filteredHousekeepers = useMemo(() => {
@@ -57,18 +89,16 @@ const TagRoomRoleModal = ({
     );
   }, [housekeepers, searchTerm]);
 
-  // Validation function
+  // 🔄 UPDATED: Validation is now conditional
   const validateForm = () => {
     const newErrors = {};
-
     if (selectedHousekeepers.length === 0) {
       newErrors.housekeepers = "At least one housekeeper must be selected";
     }
-
-    if (!selectedInspector) {
+    // Only validate inspector if inspection is required
+    if (requiresInspection && !selectedInspector) {
       newErrors.inspector = "An inspector must be selected";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -79,7 +109,6 @@ const TagRoomRoleModal = ({
         ? prev.filter((id) => id !== userId)
         : [...prev, userId]
     );
-    // Clear error when user selects a housekeeper
     if (errors.housekeepers) {
       setErrors((prev) => ({ ...prev, housekeepers: "" }));
     }
@@ -87,7 +116,6 @@ const TagRoomRoleModal = ({
 
   const handleInspectorChange = (inspectorId) => {
     setSelectedInspector(inspectorId);
-    // Clear error when user selects an inspector
     if (errors.inspector) {
       setErrors((prev) => ({ ...prev, inspector: "" }));
     }
@@ -99,7 +127,6 @@ const TagRoomRoleModal = ({
     } else {
       setSelectedHousekeepers(filteredHousekeepers.map((user) => user.id));
     }
-    // Clear error when selecting all
     if (errors.housekeepers) {
       setErrors((prev) => ({ ...prev, housekeepers: "" }));
     }
@@ -107,32 +134,28 @@ const TagRoomRoleModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!roomToTag) return;
-
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+    if (!roomToTag || !validateForm()) return;
 
     try {
       await assignStaff(
         {
           roomId: roomToTag.id,
           housekeepers: selectedHousekeepers,
-          inspector: selectedInspector,
+          // 🔄 UPDATED: Send inspector only if required
+          inspector: requiresInspection ? selectedInspector : null,
           assignedBy: currentUser.id,
+          // ✨ NEW: Pass the toggle state
+          requires_inspection: requiresInspection,
         },
         {
           onSuccess: () => {
             onClose();
-            if (onAssignmentSuccess) {
-              onAssignmentSuccess({
-                room: roomToTag,
-                housekeepers: selectedHousekeepers,
-                inspector: selectedInspector,
-              });
-            }
+            onAssignmentSuccess?.({
+              room: roomToTag,
+              housekeepers: selectedHousekeepers,
+              inspector: selectedInspector,
+              requires_inspection: requiresInspection,
+            });
           },
           onError: (error) => {
             setErrors({ submit: error.message || "Failed to assign staff" });
@@ -160,7 +183,9 @@ const TagRoomRoleModal = ({
       .filter(Boolean);
   };
 
+  // 🔄 UPDATED: Helper reflects inspection requirement
   const getSelectedInspectorName = () => {
+    if (!requiresInspection) return "Not Required";
     if (!selectedInspector) return "Unassigned";
     const inspector = inspectors.find((i) => i.id === selectedInspector);
     return inspector
@@ -168,7 +193,6 @@ const TagRoomRoleModal = ({
       : "Unassigned";
   };
 
-  // Check if all housekeepers are selected
   const allSelected =
     selectedHousekeepers.length === filteredHousekeepers.length &&
     filteredHousekeepers.length > 0;
@@ -222,31 +246,6 @@ const TagRoomRoleModal = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Current Status */}
-                  {roomToTag?.room_assignments?.[0]?.status && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="font-medium">Current Status:</span>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            roomToTag.room_assignments[0].status === "Dirty"
-                              ? "bg-red-100 text-red-800"
-                              : roomToTag.room_assignments[0].status ===
-                                "For Cleaning"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : roomToTag.room_assignments[0].status ===
-                                "For Inspection"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {roomToTag.room_assignments[0].status}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Housekeepers Section */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -266,8 +265,6 @@ const TagRoomRoleModal = ({
                         </button>
                       )}
                     </div>
-
-                    {/* Search for Housekeepers */}
                     <div className="relative">
                       <IoIosSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                       <input
@@ -278,16 +275,12 @@ const TagRoomRoleModal = ({
                         className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
-
-                    {/* Error Message */}
                     {errors.housekeepers && (
                       <div className="flex items-center gap-2 text-red-600 text-sm">
                         <IoIosWarning className="text-red-500" />
                         {errors.housekeepers}
                       </div>
                     )}
-
-                    {/* Selected Housekeepers Preview */}
                     {selectedHousekeepers.length > 0 && (
                       <div className="bg-blue-50 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
@@ -320,8 +313,6 @@ const TagRoomRoleModal = ({
                         </div>
                       </div>
                     )}
-
-                    {/* Housekeepers List */}
                     <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200">
                       {filteredHousekeepers.length > 0 ? (
                         <div className="divide-y divide-gray-100">
@@ -371,43 +362,65 @@ const TagRoomRoleModal = ({
                     </div>
                   </div>
 
-                  {/* Inspector Section */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <IoIosEye className="text-purple-500" />
-                      Inspector
-                      <span className="text-xs font-normal text-gray-500">
-                        (Select one)
-                      </span>
-                    </label>
-
-                    {/* Error Message */}
-                    {errors.inspector && (
-                      <div className="flex items-center gap-2 text-red-600 text-sm">
-                        <IoIosWarning className="text-red-500" />
-                        {errors.inspector}
-                      </div>
-                    )}
-
-                    <select
-                      value={selectedInspector}
-                      onChange={(e) => handleInspectorChange(e.target.value)}
-                      disabled={isProcessing || inspectors.length === 0}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      <option value="">-- Select Inspector --</option>
-                      {inspectors.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name} ({user.email})
-                        </option>
-                      ))}
-                    </select>
-                    {inspectors.length === 0 && (
-                      <p className="text-xs text-yellow-600">
-                        No inspectors available. Please add inspectors first.
-                      </p>
-                    )}
+                  {/* ✨ NEW: Inspection Requirement Toggle Section */}
+                  <div className="space-y-3 rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        {requiresInspection ? (
+                          <IoIosEye className="text-purple-500" />
+                        ) : (
+                          <IoIosEyeOff className="text-gray-500" />
+                        )}
+                        Requires Inspection
+                      </label>
+                      <ToggleSwitch
+                        enabled={requiresInspection}
+                        setEnabled={setRequiresInspection}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {requiresInspection
+                        ? "An inspector must approve the room after cleaning."
+                        : "Room will be 'Clean' right after the housekeeper finishes."}
+                    </p>
                   </div>
+
+                  {/* 🔄 UPDATED: Inspector Section is now conditional */}
+                  {requiresInspection && (
+                    <div className="space-y-3 transition-all duration-300">
+                      <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <IoIosEye className="text-purple-500" />
+                        Inspector
+                        <span className="text-xs font-normal text-gray-500">
+                          (Select one)
+                        </span>
+                      </label>
+                      {errors.inspector && (
+                        <div className="flex items-center gap-2 text-red-600 text-sm">
+                          <IoIosWarning className="text-red-500" />
+                          {errors.inspector}
+                        </div>
+                      )}
+                      <select
+                        value={selectedInspector}
+                        onChange={(e) => handleInspectorChange(e.target.value)}
+                        disabled={isProcessing || inspectors.length === 0}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="">-- Select Inspector --</option>
+                        {inspectors.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name} ({user.email})
+                          </option>
+                        ))}
+                      </select>
+                      {inspectors.length === 0 && (
+                        <p className="text-xs text-yellow-600">
+                          No inspectors available. Please add inspectors first.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Summary */}
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -450,10 +463,11 @@ const TagRoomRoleModal = ({
                     </button>
                     <button
                       type="submit"
+                      // 🔄 UPDATED: Disabled logic is now conditional
                       disabled={
                         isProcessing ||
                         selectedHousekeepers.length === 0 ||
-                        !selectedInspector
+                        (requiresInspection && !selectedInspector)
                       }
                       className="inline-flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >

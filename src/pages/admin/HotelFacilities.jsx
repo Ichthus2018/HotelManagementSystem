@@ -8,7 +8,7 @@ import supabase from "../../services/supabaseClient";
 import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 
 // Modals
 import AddFacilityModal from "../../components/Admin/Modals/Facility/AddFacilityModal";

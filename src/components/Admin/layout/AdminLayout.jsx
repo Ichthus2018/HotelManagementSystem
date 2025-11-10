@@ -5,7 +5,7 @@ import { useUser } from "../../../hooks/useUser";
 import { useSession } from "../../../context/SessionContext";
 import LogoutModal from "./LogoutModal";
 import Sidebar from "./Sidebar";
-import Loader from "../../ui/common/loader";
+import Loader from "../../ui/common/Loader";
 
 export default function AdminLayout() {
   const navigate = useNavigate();

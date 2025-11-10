@@ -3,19 +3,12 @@ import supabase from "../../services/supabaseClient";
 
 // UI Components
 import PageHeader from "../../components/ui/common/PageHeader";
-import Loader from "../../components/ui/common/loader";
-import WorkflowSettingDisplay from "../../components/Admin/Modals/InspectionWorkflowSettings/WorkflowSettingDisplay";
-import EditWorkflowSettingModal from "../../components/Admin/Modals/InspectionWorkflowSettings/EditWorkflowSettingModal";
-import EditWorkflowRoleTaggingModal from "../../components/Admin/Modals/InspectionWorkflowSettings/EditWorkflowRoleTaggingModal";
+import Loader from "../../components/ui/common/Loader";
 import WorkflowRoleTaggingDisplay from "../../components/Admin/Modals/InspectionWorkflowSettings/WorkflowRoleTaggingDisplay";
+import EditWorkflowRoleTaggingModal from "../../components/Admin/Modals/InspectionWorkflowSettings/EditWorkflowRoleTaggingModal";
 
 const InspectionWorkflowSettings = () => {
-  // State for original toggle feature
-  const [setting, setSetting] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // State for new role tagging feature
-  const [rolePermissions, setRolePermissions] = useState([]);
+  // State for sidebar permissions and role editing
   const [sidebarPermissions, setSidebarPermissions] = useState([]);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [selectedRoleForEdit, setSelectedRoleForEdit] = useState(null);
@@ -24,30 +17,19 @@ const InspectionWorkflowSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchAllSettings = async () => {
+  const fetchSidebarPermissions = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [settingRes, rolePermissionsRes, sidebarPermissionsRes] =
-        await Promise.all([
-          supabase
-            .from("company_settings")
-            .select("*")
-            .eq("setting_name", "inspection_workflow")
-            .single(),
-          supabase.from("workflow_role_permissions").select("*"),
-          supabase.from("sidebar_permissions").select("id, role_name"),
-        ]);
+      const { data, error } = await supabase
+        .from("sidebar_permissions")
+        .select("*");
 
-      if (settingRes.error) throw settingRes.error;
-      if (rolePermissionsRes.error) throw rolePermissionsRes.error;
-      if (sidebarPermissionsRes.error) throw sidebarPermissionsRes.error;
+      if (error) throw error;
 
-      setSetting(settingRes.data);
-      setRolePermissions(rolePermissionsRes.data || []);
-      setSidebarPermissions(sidebarPermissionsRes.data || []);
+      setSidebarPermissions(data || []);
     } catch (err) {
-      console.error("Failed to fetch settings:", err);
+      console.error("Failed to fetch sidebar permissions:", err);
       setError(err);
     } finally {
       setIsLoading(false);
@@ -55,15 +37,9 @@ const InspectionWorkflowSettings = () => {
   };
 
   useEffect(() => {
-    fetchAllSettings();
+    fetchSidebarPermissions();
   }, []);
 
-  const handleEditSuccess = () => {
-    setIsEditModalOpen(false);
-    fetchAllSettings();
-  };
-
-  // Handlers for the new role tagging modal
   const handleEditRole = (role) => {
     setSelectedRoleForEdit(role);
     setIsRoleModalOpen(true);
@@ -71,7 +47,7 @@ const InspectionWorkflowSettings = () => {
 
   const handleRoleUpdateSuccess = () => {
     setIsRoleModalOpen(false);
-    fetchAllSettings();
+    fetchSidebarPermissions();
   };
 
   const renderContent = () => {
@@ -82,66 +58,46 @@ const InspectionWorkflowSettings = () => {
           Error: {error.message}
         </div>
       );
-    if (!setting)
+
+    if (!sidebarPermissions.length)
       return (
         <div className="p-6 text-center text-gray-500">
-          Workflow setting not found.
+          No sidebar permissions found.
         </div>
       );
 
     return (
-      <>
-        {/* Section 1: Inspection Requirement */}
-        <WorkflowSettingDisplay
-          setting={setting}
-          onEdit={() => setIsEditModalOpen(true)}
-        />
-        {/* Section 2: Role-Based Permissions */}
-        <WorkflowRoleTaggingDisplay
-          rolePermissions={rolePermissions}
-          sidebarPermissions={sidebarPermissions}
-          onEdit={handleEditRole}
-        />
-      </>
+      <WorkflowRoleTaggingDisplay
+        sidebarPermissions={sidebarPermissions}
+        onEdit={handleEditRole}
+      />
     );
   };
 
-  const currentRolePermissions = rolePermissions.find(
-    (p) => p.role_name === selectedRoleForEdit
-  );
+  // Get the permissions that the selected role currently has
+  const currentPermissionIdsForModal = sidebarPermissions
+    .filter((p) => p.allowed_roles?.includes(selectedRoleForEdit))
+    .map((p) => p.id);
 
   return (
     <>
       <div className="space-y-6 w-full mx-auto p-2 pt-10 md:p-6 max-w-[95rem] xl:px-12 min-h-screen">
         <PageHeader
-          title="Workflow & Permissions"
-          description="Manage inspection requirements and role-based sidebar access."
+          title="Role-Based Sidebar Permissions"
+          description="Manage access for Admin, Inspector, and Housekeeping roles."
         />
         <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
           {renderContent()}
         </div>
       </div>
 
-      {/* Modal for the Inspection Requirement toggle */}
-      {setting && (
-        <EditWorkflowSettingModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSuccess={handleEditSuccess}
-          currentSetting={setting}
-        />
-      )}
-
-      {/* Modal for Role Permission Tagging */}
       {selectedRoleForEdit && (
         <EditWorkflowRoleTaggingModal
           isOpen={isRoleModalOpen}
           onClose={() => setIsRoleModalOpen(false)}
           onSuccess={handleRoleUpdateSuccess}
           role={selectedRoleForEdit}
-          currentPermissionIds={
-            currentRolePermissions?.sidebar_permission_ids || []
-          }
+          currentPermissionIds={currentPermissionIdsForModal}
           availablePermissions={sidebarPermissions}
         />
       )}

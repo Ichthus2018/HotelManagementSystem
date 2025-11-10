@@ -5,7 +5,7 @@ import {
   Navigate,
   HashRouter,
 } from "react-router-dom";
-import Loader from "./components/ui/common/loader";
+import Loader from "./components/ui/common/Loader";
 
 // Layouts
 import AdminLayout from "./components/Admin/layout/AdminLayout";
@@ -54,6 +54,10 @@ import { useUser } from "./hooks/useUser";
 import CleaningChecklistPage from "./pages/admin/CleaningChecklistPage";
 import HouseKeeping from "./pages/admin/HouseKeeping";
 import Inspector from "./pages/admin/Inspector";
+import ChecklistAmenities from "./pages/admin/ChecklistAmenities";
+import ChecklistItems from "./pages/admin/ChecklistItems";
+import ChecklistManagementPage from "./pages/admin/ChecklistManagementPage";
+import RoomIssues from "./pages/admin/RoomIssues";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -78,10 +82,6 @@ function App() {
           }
         />
 
-        {/*
-          CHANGE 2: Handle login/register routes separately.
-          - If a user is already logged in, redirect them away from the login page.
-        */}
         <Route
           path="/login"
           element={!user ? <Login /> : <Navigate to="/" replace />}
@@ -120,6 +120,17 @@ function App() {
             <Route path="/admin/item" element={<Items />} />
             <Route path="/admin/receivedItems" element={<ReceivedItems />} />
             <Route path="/admin/permissions" element={<SidebarPermissions />} />
+            <Route path="/admin/roomIssues" element={<RoomIssues />} />
+
+            <Route
+              path="/admin/checklistManagementPage"
+              element={<ChecklistManagementPage />}
+            />
+            <Route
+              path="/admin/checklistAmenities"
+              element={<ChecklistAmenities />}
+            />
+            <Route path="/admin/checklistItems" element={<ChecklistItems />} />
             <Route
               path="/admin/cleaningChecklistPage"
               element={<CleaningChecklistPage />}

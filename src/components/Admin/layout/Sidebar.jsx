@@ -48,7 +48,7 @@ const NavItem = ({ to, icon, label, sidebarOpen, closeSidebar }) => (
       }}
       className={({ isActive }) =>
         `
-        flex items-center justify-center md:justify-start
+        flex items-center justify-start md:justify-start
         ${sidebarOpen ? "px-4" : "px-2"} py-3
         transition-all duration-300 rounded-lg group 
         ${
@@ -172,6 +172,7 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+
               {/* ... other NavItems ... */}
               {/* <NavItem
                 to="/admin/roomNumbers"
@@ -206,6 +207,13 @@ export default function Sidebar({
                 to="/admin/roomStatus"
                 icon={<FaClipboardList size={20} />}
                 label="Room Status"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/roomIssues"
+                icon={<FaClipboardList size={20} />}
+                label="Room Issues"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
@@ -284,17 +292,37 @@ export default function Sidebar({
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
-
               <NavItem
+                to="/admin/ChecklistManagementPage"
+                icon={<FaBed size={20} />}
+                label="Checklist Management"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              {/* <NavItem
                 to="/admin/cleaningChecklistPage"
                 icon={<FaKeycdn size={20} />} // Example icon
                 label="Cleaning Checklist"
                 sidebarOpen={sidebarOpen}
                 closeSidebar={() => setSidebarOpen(false)}
               />
+              <NavItem
+                to="/admin/checklistAmenities"
+                icon={<FaCubes size={20} />}
+                label="Checklist Amenities"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              />
+              <NavItem
+                to="/admin/checklistItems"
+                icon={<FaCubes size={20} />}
+                label="Checklist Items"
+                sidebarOpen={sidebarOpen}
+                closeSidebar={() => setSidebarOpen(false)}
+              /> */}
             </ul>
           </li>
-          {/* Connections Section */}
+
           <li>
             {sidebarOpen && (
               <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">

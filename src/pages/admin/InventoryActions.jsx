@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/ui/common/PageHeader";
 import ParentCombobox from "../../components/ui/common/ParentCombobox";
 import StockActionModal from "../../components/Admin/Modals/InventoryHistory/StockActionModal";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 import EmptyState from "../../components/ui/common/EmptyState";
 import { useInventoryOverview } from "../../hooks/Admin/useInventoryOverview";
 
@@ -234,7 +234,7 @@ const InventoryActions = () => {
           <>
             <ActionButton
               onClick={() => handleActionClick("MOVE_TO_DIRTY")}
-              label="Mark as Dirty"
+              label="Mark as Used"
               icon={<ArrowDownTrayIcon />}
               variant="warning"
             />

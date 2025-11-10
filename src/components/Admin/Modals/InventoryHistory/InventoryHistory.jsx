@@ -5,7 +5,7 @@ import ReactPaginate from "react-paginate";
 import { useInventoryHistoryData } from "../../../../hooks/Admin/useInventoryHistoryData";
 import PageHeader from "../../../ui/common/PageHeader";
 import EmptyState from "../../../ui/common/EmptyState";
-import Loader from "../../../ui/common/loader";
+import Loader from "../../../ui/common/Loader";
 import SearchInput from "../../../ui/common/SearchInput";
 
 // Lazy-loaded List Component

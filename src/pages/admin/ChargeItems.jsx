@@ -7,7 +7,7 @@ import supabase from "../../services/supabaseClient";
 import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 import AddChargeItemModal from "../../components/Admin/Modals/ChargeItem/AddChargeItemModal";
 import EditChargeItemModal from "../../components/Admin/Modals/ChargeItem/EditChargeItemModal";
 import DeleteConfirmationModal from "../../components/ui/common/DeleteConfirmationModal";

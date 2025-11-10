@@ -22,7 +22,6 @@ const EditWorkflowRoleTaggingModal = ({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // When the modal opens, synchronize its state with the current permissions
     if (isOpen) {
       setSelectedIds(currentPermissionIds);
     }
@@ -34,17 +33,50 @@ const EditWorkflowRoleTaggingModal = ({
     setError("");
 
     try {
-      const { error: upsertError } = await supabase
-        .from("workflow_role_permissions")
-        .upsert(
-          { role_name: role, sidebar_permission_ids: selectedIds },
-          { onConflict: "role_name" }
-        );
+      // --- THIS IS THE CORRECTED LOGIC ---
+      // We map over all available permissions to determine which ones need changes.
+      const updatePayloads = availablePermissions
+        .map((perm) => {
+          const currentRoles = perm.allowed_roles || [];
+          const hasRole = currentRoles.includes(role);
+          const shouldHaveRole = selectedIds.includes(perm.id);
 
-      if (upsertError) throw upsertError;
+          // If no change is needed for this permission, return null.
+          if (hasRole === shouldHaveRole) {
+            return null;
+          }
 
-      onSuccess(); // This will trigger a refetch in the parent
-      onClose(); // Close the modal
+          // If a change is needed, create the updated permission object.
+          let updatedRoles;
+          if (shouldHaveRole) {
+            // Add the role
+            updatedRoles = [...currentRoles, role];
+          } else {
+            // Remove the role
+            updatedRoles = currentRoles.filter((r) => r !== role);
+          }
+          return {
+            ...perm,
+            allowed_roles: updatedRoles,
+          };
+        })
+        .filter(Boolean); // This removes all the null entries where no change was needed.
+
+      // Only perform the database call if there are actual changes to be made.
+      if (updatePayloads.length > 0) {
+        console.log("Submitting these payloads:", updatePayloads); // For debugging
+
+        const { error: upsertError } = await supabase
+          .from("sidebar_permissions")
+          .upsert(updatePayloads);
+
+        if (upsertError) {
+          throw upsertError;
+        }
+      }
+
+      onSuccess();
+      onClose();
     } catch (err) {
       console.error("Error updating role permissions:", err);
       setError(err.message || "Failed to save changes.");

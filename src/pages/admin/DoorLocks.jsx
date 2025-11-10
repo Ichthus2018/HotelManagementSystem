@@ -5,7 +5,7 @@ import ReactPaginate from "react-paginate";
 import PageHeader from "../../components/ui/common/PageHeader";
 import SearchInput from "../../components/ui/common/SearchInput";
 import EmptyState from "../../components/ui/common/EmptyState";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 
 // --- 1. Import your API base URL ---
 import { API_BASE_URL } from "../../services/api";

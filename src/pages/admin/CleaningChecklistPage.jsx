@@ -6,15 +6,11 @@ import { FiPlus, FiTrash, FiEdit } from "react-icons/fi"; // Example icons
 
 // UI Components
 import PageHeader from "../../components/ui/common/PageHeader";
-import Loader from "../../components/ui/common/loader";
+import Loader from "../../components/ui/common/Loader";
 import EmptyState from "../../components/ui/common/EmptyState";
 import AddRoomAreaModal from "../../components/Admin/Modals/CleaningChecklist/AddRoomAreaModal";
 import AddChecklistItemModal from "../../components/Admin/Modals/CleaningChecklist/AddChecklistItemModal";
 import EditRoomAreaModal from "../../components/Admin/Modals/CleaningChecklist/EditRoomAreaModal";
-
-// Modals
-
-// Import Edit and Delete modals here as well
 
 const CleaningChecklistPage = () => {
   const [roomAreas, setRoomAreas] = useState([]);
@@ -62,29 +58,6 @@ const CleaningChecklistPage = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleToggleCheck = async (item) => {
-    // Optimistic UI update
-    const updatedRoomAreas = roomAreas.map((room) => ({
-      ...room,
-      items: room.items.map((i) =>
-        i.id === item.id ? { ...i, is_checked: !i.is_checked } : i
-      ),
-    }));
-    setRoomAreas(updatedRoomAreas);
-
-    // Update in Supabase
-    const { error } = await supabase
-      .from("checklist_items")
-      .update({ is_checked: !item.is_checked })
-      .eq("id", item.id);
-
-    if (error) {
-      console.error("Error updating item status:", error);
-      // Revert UI on error
-      fetchData();
-    }
-  };
 
   const openEditRoomModal = (room) => {
     setSelectedRoomForEdit(room);
@@ -170,24 +143,22 @@ const CleaningChecklistPage = () => {
 
             <ul className="space-y-3">
               {room.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.is_checked}
-                      onChange={() => handleToggleCheck(item)}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span
-                      className={`ml-3 text-gray-700 ${
-                        item.is_checked ? "line-through text-gray-400" : ""
-                      }`}
-                    >
-                      {item.name}
-                    </span>
-                  </label>
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                >
+                  <span
+                    className={`text-gray-700 ${
+                      item.is_checked ? "line-through text-gray-400" : ""
+                    }`}
+                  >
+                    {item.name}
+                  </span>
                   <button
-                    onClick={() => handleDeleteItem(item.id)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevents toggling check when deleting
+                      handleDeleteItem(item.id);
+                    }}
                     className="text-gray-400 hover:text-red-500 ml-4"
                   >
                     <FiTrash size={16} />

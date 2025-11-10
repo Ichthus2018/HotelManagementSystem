@@ -15,8 +15,8 @@ export const useRoomActions = () => {
   };
 
   const assignStaff = async (assignmentData, options = {}) => {
-    // ✅ FIXED: Destructure 'status' from the incoming data
-    const { roomId, housekeepers, inspector, status } = assignmentData;
+    const { roomId, housekeepers, inspector, requires_inspection } =
+      assignmentData;
     setIsProcessing(true);
 
     try {
@@ -24,7 +24,7 @@ export const useRoomActions = () => {
         roomId,
         housekeepers,
         inspector,
-        status,
+        requires_inspection,
       });
 
       const { data, error } = await supabase
@@ -33,15 +33,12 @@ export const useRoomActions = () => {
           {
             room_id: roomId,
             housekeepers: housekeepers || [],
-            inspector: inspector || null,
+            inspector: requires_inspection ? inspector || null : null,
             assigned_by: user?.id,
-            // ✅ FIXED: Use the passed status, with a fallback
-            status:
-              status ||
-              (housekeepers && housekeepers.length > 0
-                ? "For Cleaning"
-                : "Dirty"),
+            // ✅ CORRECTED: Status is set to 'For Cleaning' when staff are assigned.
+            status: "For Cleaning",
             updated_at: new Date().toISOString(),
+            requires_inspection: requires_inspection,
           },
           { onConflict: "room_id", ignoreDuplicates: false }
         )
@@ -83,9 +80,6 @@ export const useRoomActions = () => {
     }
   };
 
-  // =================================================================
-  // === THIS IS THE CORE FIX FOR THE ROOM CARD STATUS DROPDOWN ===
-  // =================================================================
   const updateStatus = async ({ roomId, newStatus }, options = {}) => {
     setIsProcessing(true);
     try {

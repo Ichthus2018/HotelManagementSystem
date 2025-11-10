@@ -5,7 +5,7 @@ import {
   LockClosedIcon,
   Battery50Icon,
 } from "@heroicons/react/24/outline";
-import Loader from "../../../../ui/common/loader";
+import Loader from "../../../../ui/common/Loader";
 import { API_BASE_URL } from "../../../../../services/api";
 
 const GatewayLocksModal = ({ isOpen, onClose, gateway }) => {
